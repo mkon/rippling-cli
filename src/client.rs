@@ -124,10 +124,10 @@ pub struct AccountInfoRole {
 #[derive(Debug, Deserialize)]
 pub struct AuthResult {
     pub access_token: String,
-    expires_in: u32,
+    // expires_in: u32,
     pub refresh_token: String,
-    token_type: String,
-    scope: String,
+    // token_type: String,
+    // scope: String,
 }
 
 #[derive(Debug, Deserialize)]
