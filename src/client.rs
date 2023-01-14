@@ -46,10 +46,23 @@ impl Client {
         self.refresh_token = Some(result.refresh_token);
     }
 
+    pub fn account_info(&self) -> Vec<AccountInfo> {
+        let res = self
+            .authenticated_request_for(
+                Method::GET,
+                "https://app.rippling.com/api/auth_ext/get_account_info",
+            )
+            .send()
+            .unwrap();
+        let result: Vec<AccountInfo> = res.json().unwrap();
+        println!("Response:\n{:?}", result);
+        result
+    }
+
     pub fn current_user(&self) {
         let res = self
             .authenticated_request_for(
-                reqwest::Method::GET,
+                Method::GET,
                 "https://api.rippling.com/platform/api/me",
             )
             .send()
@@ -61,7 +74,7 @@ impl Client {
     pub fn tt_entries(&self) -> Vec<TimeTrackEntry> {
         let req = self
             .authenticated_request_for(
-                reqwest::Method::GET,
+                Method::GET,
                 "https://app.rippling.com/api/time_tracking/api/time_entries/",
             )
             .query(&[("endTime", "")]); // Filter for entries with no end time
@@ -98,12 +111,29 @@ impl Client {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AccountInfo {
+    pub id: String,
+    pub role: AccountInfoRole,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AccountInfoRole {
+    pub company: Oid,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AuthResult {
     pub access_token: String,
     expires_in: u32,
     pub refresh_token: String,
     token_type: String,
     scope: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Oid {
+    #[serde(rename = "$oid")]
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize)]

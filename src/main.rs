@@ -37,8 +37,6 @@ enum Commands {
 enum ConfigureCommands {
     ClientId { value: String },
     ClientSecret { value: String },
-    Company { value: String },
-    Employee { value: String },
     Username { value: String },
 }
 
@@ -62,8 +60,6 @@ fn main() {
             match command {
                 ConfigureCommands::ClientId { value } => cfg.client_id = Some(value.clone()),
                 ConfigureCommands::ClientSecret { value } => cfg.client_secret = Some(value.clone()),
-                ConfigureCommands::Company { value } => cfg.company = Some(value.clone()),
-                ConfigureCommands::Employee { value } => cfg.employee = Some(value.clone()),
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
             }
 
@@ -86,12 +82,17 @@ fn authenticate(cfg: &mut MyConfig) {
 
     cfg.access_token = client.access_token.to_owned();
     cfg.refresh_token = client.refresh_token.to_owned();
+
+    let info = client.account_info();
+    cfg.company = Some(info[0].role.company.id.clone());
+    cfg.employee = Some(info[0].id.clone());
     cfg.store();
 }
 
 fn call_me(cfg: &MyConfig) {
     let client = client_from_config(cfg);
 
+    client.account_info();
     client.current_user();
     client.tt_entries();
 }

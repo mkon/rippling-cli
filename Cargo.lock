@@ -847,6 +847,7 @@ dependencies = [
  "confy",
  "reqwest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
