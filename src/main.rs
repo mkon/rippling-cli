@@ -1,5 +1,5 @@
-pub mod config;
-pub mod client;
+mod config;
+mod client;
 
 use std::io;
 
