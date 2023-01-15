@@ -82,7 +82,7 @@ impl Client {
         // let raw = res.text().unwrap();
         // println!("Response:\n{:?}", raw);
         let result: Vec<TimeTrackEntry> = res.json().unwrap();
-        println!("Response:\n{:?}", result);
+        // println!("Response:\n{:?}", result);
         result
     }
 
