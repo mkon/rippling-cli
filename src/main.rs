@@ -4,7 +4,7 @@ mod config;
 use std::io;
 
 use clap::{Parser, Subcommand};
-use client::Client;
+use client::{Client, TimeTrackEntry};
 use config::MyConfig;
 use spinners::{Spinner, Spinners};
 
@@ -76,34 +76,37 @@ fn authenticate(cfg: &mut MyConfig) {
     let password = ask_user_input("Enter your password");
 
     let mut client = client_from_config(cfg);
-    client.authenticate(&username, &password);
-
-    cfg.access_token = client.access_token.to_owned();
-    cfg.refresh_token = client.refresh_token.to_owned();
-
-    let info = client.account_info();
-    cfg.company = Some(info[0].role.company.id.clone());
-    cfg.employee = Some(info[0].id.clone());
-    cfg.store();
+    match client.authenticate(&username, &password) {
+        Ok((at, rt)) => {
+            cfg.access_token = Some(at.to_owned());
+            cfg.refresh_token = Some(rt.to_owned());
+        
+            let info = client.account_info().expect("Failed to query account information");
+            assert!(info.len() == 1, "Unexpected accoutn information data");
+            cfg.company = Some(info[0].role.company.id.clone());
+            cfg.employee = Some(info[0].id.clone());
+            cfg.store();
+        },
+        _ => println!("Authentication failed")
+    }
 }
 
 fn call_me(cfg: &MyConfig) {
     let client = client_from_config(cfg);
 
-    client.account_info();
+    client.account_info().unwrap();
     client.current_user();
-    client.tt_entries();
 }
 
 fn tt_status(cfg: &MyConfig) {
     let client = client_from_config(cfg);
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let entries = client.tt_entries();
-    if entries.is_empty() {
+    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
+    if result.is_empty() {
         sp.stop_with_message("Not clocked in!".into());
     } else {
-        sp.stop_with_message("Clocked in!".into());
+        sp.stop_with_message(format!("Clocked in since {}!", result[0].start_time.format("%R")));
     }
 }
 
