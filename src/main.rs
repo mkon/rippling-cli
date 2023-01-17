@@ -4,7 +4,7 @@ mod persistance;
 use std::io;
 
 use clap::{Parser, Subcommand};
-use client::{PublicClient, AuthenticatedClient, TimeTrackEntry};
+use client::{AuthenticatedClient, PublicClient, TimeTrackEntry};
 use persistance::Settings;
 use spinners::{Spinner, Spinners};
 
@@ -31,6 +31,10 @@ enum Commands {
 
     /// Clock-in Status
     Status,
+
+    /// Clock In
+    #[clap(alias = "in")]
+    ClockIn,
 }
 
 #[derive(Debug, Subcommand)]
@@ -43,15 +47,10 @@ fn main() {
     let mut cfg = Settings::load();
 
     match &cli.command {
-        Commands::Authenticate => {
-            authenticate(&cfg);
-        }
-        Commands::Status => {
-            tt_status(&cfg);
-        }
-        Commands::Test => {
-            call_me(&cfg);
-        }
+        Commands::Authenticate => authenticate(&cfg),
+        Commands::ClockIn => tt_clock_in(),
+        Commands::Status => tt_status(),
+        Commands::Test => test(),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
@@ -72,34 +71,52 @@ fn authenticate(cfg: &Settings) {
     let client = PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
         Ok(mut client) => {
-            client.setup_company_any_role().expect("Failed to query account info");
+            client
+                .setup_company_any_role()
+                .expect("Failed to query account info");
             client.save();
-        },
-        _ => println!("Authentication failed")
+        }
+        _ => println!("Authentication failed"),
     }
 }
 
-fn call_me(cfg: &Settings) {
-    let client = client_from_config(cfg);
+fn test() {
+    let client = AuthenticatedClient::load();
 
-    client.account_info().unwrap();
-    client.current_user();
+    let info = client.account_info().unwrap();
+    dbg!(&info);
 }
 
-fn tt_status(cfg: &Settings) {
-    let client = client_from_config(cfg);
+fn tt_clock_in() {
+    let client = AuthenticatedClient::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let result: Vec<TimeTrackEntry> = client.tt_entries().expect("Failed to query time tracking");
-    if result.is_empty() {
-        sp.stop_with_message("Not clocked in!".into());
-    } else {
-        sp.stop_with_message(format!("Clocked in since {}!", result[0].start_time.format("%R")));
+    match client.tt_clock_start() {
+        Ok(entry) => sp.stop_with_message(format!(
+            "Clocked in since {}!",
+            entry.start_time.format("%R")
+        )),
+        Err(err) => sp.stop_with_message(format!("Error: {:?}!", err)),
     }
 }
 
-fn client_from_config(_: &Settings) -> AuthenticatedClient {
-    AuthenticatedClient::load()
+fn tt_status() {
+    let client = AuthenticatedClient::load();
+
+    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
+    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
+    match result.get(0) {
+        None => sp.stop_with_message("Not clocked in!".into()),
+        Some(entry) => match entry.current_break() {
+            None => sp.stop_with_message(format!(
+                "Clocked in since {}!",
+                entry.start_time.format("%R")
+            )),
+            Some(br) => {
+                sp.stop_with_message(format!("On break since {}!", br.start_time.format("%R")))
+            }
+        },
+    }
 }
 
 fn ask_user_input(prompt: &str) -> String {

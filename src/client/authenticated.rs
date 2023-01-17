@@ -5,10 +5,27 @@ use reqwest::{
     Method,
 };
 use serde::{Deserialize};
+use serde_json::json;
 
 use crate::persistance;
 
-use super::Result;
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    Custom(String),
+    BadRequest(String),
+    Wrapping(reqwest::Error),
+    UnhandledStatus(u16),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        println!("reqwest error:");
+        dbg!(&value);
+        Error::Wrapping(value)
+    }
+}
 
 pub struct Client {
     access_token: String,
@@ -54,15 +71,6 @@ impl Client {
         Ok(req.send()?.json::<Vec<AccountInfo>>()?)
     }
 
-    pub fn current_user(&self) {
-        let res = self
-            .request_for(Method::GET, "https://api.rippling.com/platform/api/me")
-            .send()
-            .unwrap();
-        let result = res.text().unwrap();
-        println!("Response:\n{:?}", result);
-    }
-
     pub fn tt_entries(&self) -> Result<Vec<TimeTrackEntry>> {
         let req = self
             .request_for(
@@ -71,6 +79,23 @@ impl Client {
             )
             .query(&[("endTime", "")]); // Filter for entries with no end time
         Ok(req.send()?.json::<Vec<TimeTrackEntry>>()?)
+    }
+
+
+    pub fn tt_clock_start(&self) -> Result<TimeTrackEntry> {
+        let req = self
+            .request_for(
+                Method::POST,
+                "https://app.rippling.com/api/time_tracking/api/time_entries/start_clock",
+            )
+            .json(&json!({"source": "WEB_CLOCK", "role": self.role.as_ref().unwrap()}));
+        dbg!(&req);
+        let res = req.send()?;
+        match res.status() {
+            reqwest::StatusCode::ACCEPTED => Ok(res.json::<TimeTrackEntry>()?),
+            reqwest::StatusCode::BAD_REQUEST => Err(Error::BadRequest(res.text()?)),
+            _ => Err(Error::UnhandledStatus(res.status().as_u16())),
+        }
     }
 
     pub fn setup_company_any_role(&mut self) -> Result<()> {
@@ -128,12 +153,30 @@ pub struct Oid {
     pub id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct TimeTrackEntry {
     pub id: String,
     #[serde(rename = "startTime")]
     pub start_time: DateTime<Local>,
     #[serde(rename = "endTime")]
     pub end_time: Option<DateTime<Local>>,
-    pub timezone: String,
+    pub breaks: Vec<TimeTrackEntryBreak>,
+    // pub timezone: String,
+}
+
+impl TimeTrackEntry {
+    pub fn current_break(&self) -> Option<&TimeTrackEntryBreak> {
+        self.breaks.iter().find(|b| b.end_time.is_none())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackEntryBreak {
+    #[serde(rename = "companyBreakType")]
+    pub break_type_id: String,
+    pub description: String,
+    #[serde(rename = "startTime")]
+    pub start_time: DateTime<Local>,
+    #[serde(rename = "endTime")]
+    pub end_time: Option<DateTime<Local>>,
 }
