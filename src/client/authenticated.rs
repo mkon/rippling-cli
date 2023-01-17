@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Local, Duration};
+use chrono::{DateTime, Duration, Local};
 use reqwest::{
     blocking::RequestBuilder,
     header::{HeaderMap, HeaderValue},
@@ -27,11 +27,9 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         dbg!(self);
         match self {
-            Self::ApiError { status, data } => {
-                match data.get("detail") {
-                    Some(string) => write!(f, "{string}"),
-                    None => write!(f, "Unexpected response status {status}"),
-                }
+            Self::ApiError { status, data } => match data.get("detail") {
+                Some(string) => write!(f, "{string}"),
+                None => write!(f, "Unexpected response status {status}"),
             },
             Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
             Self::Wrapping(err) => write!(f, "{err}"),
@@ -112,16 +110,17 @@ impl Client {
     }
 
     pub fn tt_break_policy(&self, id: &str) -> Result<TimeTrackBreakPolicy> {
-        let req = self
-            .request_for(
-                Method::GET,
-                format!("https://app.rippling.com/api/time_tracking/api/time_entry_break_policies/{id}"),
-            );
+        let req = self.request_for(
+            Method::GET,
+            format!(
+                "https://app.rippling.com/api/time_tracking/api/time_entry_break_policies/{id}"
+            ),
+        );
         // let raw = res.text().unwrap();
         // println!("Response:\n{:?}", raw);
         Ok(req.send()?.json::<TimeTrackBreakPolicy>()?)
     }
-    
+
     pub fn tt_break_end(&self, entry_id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
         let req = self
             .request_for(
@@ -162,6 +161,22 @@ impl Client {
         }
     }
 
+    pub fn tt_clock_stop(&self, id: &str) -> Result<TimeTrackEntry> {
+        let req = self
+            .request_for(
+                Method::POST,
+                format!(
+                    "https://app.rippling.com/api/time_tracking/api/time_entries/{id}/stop_clock"
+                ),
+            )
+            .json(&json!({"source": "WEB_CLOCK"}));
+        let res = req.send()?;
+        match res.status() {
+            reqwest::StatusCode::OK => Ok(res.json::<TimeTrackEntry>()?),
+            _ => Err(Self::unexpected_status_error(res)),
+        }
+    }
+
     pub fn setup_company_and_role(&mut self) -> Result<()> {
         if [&self.company, &self.role].iter().any(|f| f.is_none()) {
             let info = self.account_info()?;
@@ -195,13 +210,13 @@ impl Client {
                 if val.to_str().unwrap().contains("application/json") {
                     Error::ApiError {
                         status: res.status().as_u16(),
-                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap()
+                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap(),
                     }
                 } else {
                     Error::UnhandledStatus(res.status().as_u16())
                 }
-            },
-            None => { Error::UnhandledStatus(res.status().as_u16()) },
+            }
+            None => Error::UnhandledStatus(res.status().as_u16()),
         }
     }
 
@@ -247,7 +262,8 @@ pub struct TimeTrackEntry {
 }
 
 fn f32_from_str<'de, D>(deserializer: D) -> std::result::Result<f32, D::Error>
-where D: Deserializer<'de>
+where
+    D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer).unwrap();
     Ok(s.parse::<f32>().unwrap())
@@ -296,8 +312,15 @@ pub struct TimeTrackBreakPolicy {
 
 impl TimeTrackBreakPolicy {
     pub fn manual_break_type(&self) -> Option<&TimeTrackBreakType> {
-        let eligible_ids: Vec<&str> = self.eligible_break_types.iter().filter(|&bt| bt.allow_manual).map(|bt| bt.break_type_id.as_ref()).collect();
-        self.break_types.iter().find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
+        let eligible_ids: Vec<&str> = self
+            .eligible_break_types
+            .iter()
+            .filter(|&bt| bt.allow_manual)
+            .map(|bt| bt.break_type_id.as_ref())
+            .collect();
+        self.break_types
+            .iter()
+            .find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
     }
 }
 

@@ -36,6 +36,10 @@ enum Commands {
     #[clap(alias = "in")]
     ClockIn,
 
+    /// Clock Out
+    #[clap(alias = "out")]
+    ClockOut,
+
     /// Start a break
     #[clap(alias = "sb", alias = "break")]
     StartBreak,
@@ -57,6 +61,7 @@ fn main() {
     match &cli.command {
         Commands::Authenticate => authenticate(&cfg),
         Commands::ClockIn => tt_clock_in(),
+        Commands::ClockOut => tt_clock_out(),
         Commands::Status => tt_status(),
         Commands::Test => test(),
         Commands::StartBreak => tt_break_start(),
@@ -157,6 +162,22 @@ fn tt_clock_in() {
             entry.start_time.format("%R")
         )),
         Err(err) => sp.stop_with_message(format!("Error: {err}!")),
+    }
+}
+
+fn tt_clock_out() {
+    let client = AuthenticatedClient::load();
+
+    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
+    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
+    match result.get(0) {
+        Some(entry) => {
+            match client.tt_clock_stop(&entry.id) {
+                Ok(_) => sp.stop_with_message("Clocked out!".into()),
+                Err(err) => sp.stop_with_message(format!("Error: {err}!")),
+            }
+        },
+        None => sp.stop_with_message("Not clocked in!".into()),
     }
 }
 
