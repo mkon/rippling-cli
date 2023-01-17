@@ -25,10 +25,16 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        dbg!(self);
         match self {
-            Self::ApiError { status: _, data } => write!(f, "{}", data["detail"].as_str().unwrap()),
+            Self::ApiError { status, data } => {
+                match data.get("detail") {
+                    Some(string) => write!(f, "{string}"),
+                    None => write!(f, "Unexpected response status {status}"),
+                }
+            },
             Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
-            Self::Wrapping(err) => write!(f, "{}", err),
+            Self::Wrapping(err) => write!(f, "{err}"),
         }
     }
 }
@@ -151,12 +157,12 @@ impl Client {
             .json(&json!({"source": "WEB_CLOCK", "role": self.role.as_ref().unwrap()}));
         let res = req.send()?;
         match res.status() {
-            reqwest::StatusCode::ACCEPTED => Ok(res.json::<TimeTrackEntry>()?),
+            reqwest::StatusCode::OK => Ok(res.json::<TimeTrackEntry>()?),
             _ => Err(Self::unexpected_status_error(res)),
         }
     }
 
-    pub fn setup_company_any_role(&mut self) -> Result<()> {
+    pub fn setup_company_and_role(&mut self) -> Result<()> {
         if [&self.company, &self.role].iter().any(|f| f.is_none()) {
             let info = self.account_info()?;
             assert!(info.len() == 1, "Unexpected account info result");

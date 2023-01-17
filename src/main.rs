@@ -82,7 +82,7 @@ fn authenticate(cfg: &Settings) {
     match client.authenticate(&username, &password) {
         Ok(mut client) => {
             client
-                .setup_company_any_role()
+                .setup_company_and_role()
                 .expect("Failed to query account info");
             client.save();
         }
