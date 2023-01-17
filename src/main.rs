@@ -4,7 +4,7 @@ mod persistance;
 use std::io;
 
 use clap::{Parser, Subcommand};
-use client::{AuthenticatedClient, PublicClient, TimeTrackEntry};
+use client::{AuthenticatedClient, PublicClient};
 use persistance::Settings;
 use spinners::{Spinner, Spinners};
 
@@ -110,8 +110,8 @@ fn tt_break_start() {
     let break_policy = client
         .tt_break_policy(&policy.break_policy_id)
         .expect("Unable to fetch break policy");
-    let entries = client.tt_entries().expect("Unable to fetch current entry");
-    match entries.get(0) {
+    let result = client.tt_current_entry().expect("Unable to fetch current entry");
+    match result {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
             Some(br) => sp.stop_with_message(format!(
@@ -134,8 +134,8 @@ fn tt_break_end() {
     let client = AuthenticatedClient::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
-    match result.get(0) {
+    let result = client.tt_current_entry().unwrap();
+    match result {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
             None => sp.stop_with_message(format!("Not on a break!")),
@@ -169,8 +169,8 @@ fn tt_clock_out() {
     let client = AuthenticatedClient::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
-    match result.get(0) {
+    let entry = client.tt_current_entry().unwrap();
+    match entry {
         Some(entry) => {
             match client.tt_clock_stop(&entry.id) {
                 Ok(_) => sp.stop_with_message("Clocked out!".into()),
@@ -185,8 +185,8 @@ fn tt_status() {
     let client = AuthenticatedClient::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let result: Vec<TimeTrackEntry> = client.tt_entries().unwrap();
-    match result.get(0) {
+    let entry = client.tt_current_entry().unwrap();
+    match entry {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
             None => sp.stop_with_message(format!(

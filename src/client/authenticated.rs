@@ -1,13 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, result::Result as StdResult};
 
 use chrono::{DateTime, Duration, Local};
 use reqwest::{
-    blocking::RequestBuilder,
+    blocking::{RequestBuilder, Response},
     header::{HeaderMap, HeaderValue},
-    Method,
 };
 use serde::{Deserialize, Deserializer};
 use serde_json::json;
+use url::Url;
 
 use crate::persistance;
 
@@ -19,7 +19,9 @@ pub enum Error {
         status: u16,
         data: HashMap<String, serde_json::Value>,
     },
-    Wrapping(reqwest::Error),
+    MissingActivePolicy,
+    Wrapping(Box<dyn std::error::Error>),
+    UnexpectedAccountInfo,
     UnhandledStatus(u16),
 }
 
@@ -31,6 +33,8 @@ impl std::fmt::Display for Error {
                 Some(string) => write!(f, "{string}"),
                 None => write!(f, "Unexpected response status {status}"),
             },
+            Self::MissingActivePolicy => write!(f, "No active policy"),
+            Self::UnexpectedAccountInfo => write!(f, "Unexpected account info response"),
             Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
             Self::Wrapping(err) => write!(f, "{err}"),
         }
@@ -39,7 +43,31 @@ impl std::fmt::Display for Error {
 
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        Error::Wrapping(value)
+        Error::Wrapping(Box::new(value))
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Error::Wrapping(Box::new(value))
+    }
+}
+
+impl From<reqwest::blocking::Response> for Error {
+    fn from(res: reqwest::blocking::Response) -> Self {
+        match res.headers().get("Content-Type") {
+            Some(val) => {
+                if val.to_str().unwrap().contains("application/json") {
+                    Error::ApiError {
+                        status: res.status().as_u16(),
+                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap(),
+                    }
+                } else {
+                    Error::UnhandledStatus(res.status().as_u16())
+                }
+            }
+            None => Error::UnhandledStatus(res.status().as_u16()),
+        }
     }
 }
 
@@ -79,116 +107,90 @@ impl Client {
         state.store();
     }
 
-    pub fn account_info(&self) -> Result<Vec<AccountInfo>> {
-        let req = self.request_for(
-            Method::GET,
-            "https://app.rippling.com/api/auth_ext/get_account_info",
-        );
-        Ok(req.send()?.json::<Vec<AccountInfo>>()?)
+    pub fn account_info(&self) -> Result<AccountInfo> {
+        let req = self.get("auth_ext/get_account_info");
+        request_to_result(req, |r| {
+            let list = r.json::<Vec<AccountInfo>>()?;
+            list.into_iter().next().ok_or(Error::UnexpectedAccountInfo)
+        })
     }
 
-    pub fn tt_entries(&self) -> Result<Vec<TimeTrackEntry>> {
+    pub fn tt_current_entry(&self) -> Result<Option<TimeTrackEntry>> {
         let req = self
-            .request_for(
-                Method::GET,
-                "https://app.rippling.com/api/time_tracking/api/time_entries/",
-            )
+            .get("time_tracking/api/time_entries")
             .query(&[("endTime", "")]); // Filter for entries with no end time
-        Ok(req.send()?.json::<Vec<TimeTrackEntry>>()?)
+        request_to_result(req, |r| {
+            let entries = r.json::<Vec<TimeTrackEntry>>()?;
+            Result::Ok(entries.into_iter().next())
+        })
     }
 
     pub fn tt_active_policy(&self) -> Result<TimeTrackPolicy> {
-        let req = self
-            .request_for(
-                Method::GET,
-                format!("https://app.rippling.com/api/time_tracking/api/time_entry_policies/get_active_policy"),
-            );
-        // let raw = res.text().unwrap();
-        // println!("Response:\n{:?}", raw);
-        let data = req.send()?.json::<HashMap<String, TimeTrackPolicy>>()?;
-        Ok(data.values().next().unwrap().to_owned())
+        let req = self.get("time_tracking/api/time_entry_policies/get_active_policy");
+        request_to_result(req, |r| {
+            let policies = r.json::<HashMap<String, TimeTrackPolicy>>()?;
+            policies.into_iter().map(|(_, v)| v).next().ok_or(Error::MissingActivePolicy)
+        })
     }
 
     pub fn tt_break_policy(&self, id: &str) -> Result<TimeTrackBreakPolicy> {
-        let req = self.request_for(
-            Method::GET,
-            format!(
-                "https://app.rippling.com/api/time_tracking/api/time_entry_break_policies/{id}"
-            ),
-        );
-        // let raw = res.text().unwrap();
-        // println!("Response:\n{:?}", raw);
-        Ok(req.send()?.json::<TimeTrackBreakPolicy>()?)
+        let req = self.get(&format!("time_tracking/api/time_entry_break_policies/{id}"));
+        request_to_result(req, |r| r.json::<TimeTrackBreakPolicy>())
     }
 
-    pub fn tt_break_end(&self, entry_id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+    pub fn tt_break_end(&self, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .request_for(
-                Method::POST,
-                format!("https://app.rippling.com/api/time_tracking/api/time_entries/{entry_id}/end_break"),
-            )
+            .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
             .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
-        dbg!(&req);
-        // let raw = res.text().unwrap();
-        // println!("Response:\n{:?}", raw);
-        Ok(req.send()?.json::<TimeTrackEntry>()?)
+        request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
-    pub fn tt_break_start(&self, entry_id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+    pub fn tt_break_start(&self, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .request_for(
-                Method::POST,
-                format!("https://app.rippling.com/api/time_tracking/api/time_entries/{entry_id}/start_break"),
-            )
+            .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
             .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
-        dbg!(&req);
-        // let raw = res.text().unwrap();
-        // println!("Response:\n{:?}", raw);
-        Ok(req.send()?.json::<TimeTrackEntry>()?)
+        request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn tt_clock_start(&self) -> Result<TimeTrackEntry> {
         let req = self
-            .request_for(
-                Method::POST,
-                "https://app.rippling.com/api/time_tracking/api/time_entries/start_clock",
-            )
+            .post("time_tracking/api/time_entries/start_clock")
             .json(&json!({"source": "WEB_CLOCK", "role": self.role.as_ref().unwrap()}));
-        let res = req.send()?;
-        match res.status() {
-            reqwest::StatusCode::OK => Ok(res.json::<TimeTrackEntry>()?),
-            _ => Err(Self::unexpected_status_error(res)),
-        }
+        request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn tt_clock_stop(&self, id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .request_for(
-                Method::POST,
-                format!(
-                    "https://app.rippling.com/api/time_tracking/api/time_entries/{id}/stop_clock"
-                ),
-            )
+            .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
             .json(&json!({"source": "WEB_CLOCK"}));
-        let res = req.send()?;
-        match res.status() {
-            reqwest::StatusCode::OK => Ok(res.json::<TimeTrackEntry>()?),
-            _ => Err(Self::unexpected_status_error(res)),
-        }
+        request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn setup_company_and_role(&mut self) -> Result<()> {
         if [&self.company, &self.role].iter().any(|f| f.is_none()) {
             let info = self.account_info()?;
-            assert!(info.len() == 1, "Unexpected account info result");
             if let None = &self.company {
-                self.company = Some(info[0].role.company.id.to_owned());
+                self.company = Some(info.role.company.id.to_owned());
             }
             if let None = &self.role {
-                self.role = Some(info[0].id.to_owned());
+                self.role = Some(info.id.to_owned());
             }
         }
         Ok(())
+    }
+
+    fn get(&self, path: &str) -> RequestBuilder {
+        self.session
+            .get(self.url_for(&path).unwrap())
+            .bearer_auth(&self.access_token)
+            .headers(self.request_headers())
+    }
+
+    fn post(&self, path: &str) -> RequestBuilder {
+        self.session
+            .post(self.url_for(&path).unwrap())
+            .bearer_auth(&self.access_token)
+            .headers(self.request_headers())
     }
 
     fn request_headers(&self) -> HeaderMap {
@@ -204,30 +206,21 @@ impl Client {
         map
     }
 
-    fn unexpected_status_error(res: reqwest::blocking::Response) -> Error {
-        match res.headers().get("Content-Type") {
-            Some(val) => {
-                if val.to_str().unwrap().contains("application/json") {
-                    Error::ApiError {
-                        status: res.status().as_u16(),
-                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap(),
-                    }
-                } else {
-                    Error::UnhandledStatus(res.status().as_u16())
-                }
-            }
-            None => Error::UnhandledStatus(res.status().as_u16()),
-        }
+    fn url_for(&self, path: &str) -> Result<Url> {
+        let url = Url::parse("https://app.rippling.com/api/").unwrap();
+        Ok(url.join(path)?)
     }
+}
 
-    fn request_for<U>(&self, method: Method, url: U) -> RequestBuilder
-    where
-        U: reqwest::IntoUrl,
-    {
-        self.session
-            .request(method, url)
-            .bearer_auth(&self.access_token)
-            .headers(self.request_headers())
+fn request_to_result<E, F, T>(req: RequestBuilder, f: F) -> Result<T>
+where
+    F: FnOnce(Response) -> StdResult<T, E>,
+    Error: From<E>,
+{
+    let res = req.send()?;
+    match res.status() {
+        reqwest::StatusCode::OK => f(res).map_err(Error::from),
+        _ => Err(res.into()),
     }
 }
 
