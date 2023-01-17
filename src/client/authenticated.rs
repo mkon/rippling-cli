@@ -1,10 +1,12 @@
-use chrono::{DateTime, Local};
+use std::collections::HashMap;
+
+use chrono::{DateTime, Local, Duration};
 use reqwest::{
     blocking::RequestBuilder,
     header::{HeaderMap, HeaderValue},
     Method,
 };
-use serde::{Deserialize};
+use serde::{Deserialize, Deserializer};
 use serde_json::json;
 
 use crate::persistance;
@@ -13,16 +15,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    Custom(String),
-    BadRequest(String),
+    ApiError {
+        status: u16,
+        data: HashMap<String, serde_json::Value>,
+    },
     Wrapping(reqwest::Error),
     UnhandledStatus(u16),
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ApiError { status: _, data } => write!(f, "{}", data["detail"].as_str().unwrap()),
+            Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
+            Self::Wrapping(err) => write!(f, "{}", err),
+        }
+    }
+}
+
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        println!("reqwest error:");
-        dbg!(&value);
         Error::Wrapping(value)
     }
 }
@@ -81,6 +93,54 @@ impl Client {
         Ok(req.send()?.json::<Vec<TimeTrackEntry>>()?)
     }
 
+    pub fn tt_active_policy(&self) -> Result<TimeTrackPolicy> {
+        let req = self
+            .request_for(
+                Method::GET,
+                format!("https://app.rippling.com/api/time_tracking/api/time_entry_policies/get_active_policy"),
+            );
+        // let raw = res.text().unwrap();
+        // println!("Response:\n{:?}", raw);
+        let data = req.send()?.json::<HashMap<String, TimeTrackPolicy>>()?;
+        Ok(data.values().next().unwrap().to_owned())
+    }
+
+    pub fn tt_break_policy(&self, id: &str) -> Result<TimeTrackBreakPolicy> {
+        let req = self
+            .request_for(
+                Method::GET,
+                format!("https://app.rippling.com/api/time_tracking/api/time_entry_break_policies/{id}"),
+            );
+        // let raw = res.text().unwrap();
+        // println!("Response:\n{:?}", raw);
+        Ok(req.send()?.json::<TimeTrackBreakPolicy>()?)
+    }
+    
+    pub fn tt_break_end(&self, entry_id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+        let req = self
+            .request_for(
+                Method::POST,
+                format!("https://app.rippling.com/api/time_tracking/api/time_entries/{entry_id}/end_break"),
+            )
+            .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
+        dbg!(&req);
+        // let raw = res.text().unwrap();
+        // println!("Response:\n{:?}", raw);
+        Ok(req.send()?.json::<TimeTrackEntry>()?)
+    }
+
+    pub fn tt_break_start(&self, entry_id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+        let req = self
+            .request_for(
+                Method::POST,
+                format!("https://app.rippling.com/api/time_tracking/api/time_entries/{entry_id}/start_break"),
+            )
+            .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
+        dbg!(&req);
+        // let raw = res.text().unwrap();
+        // println!("Response:\n{:?}", raw);
+        Ok(req.send()?.json::<TimeTrackEntry>()?)
+    }
 
     pub fn tt_clock_start(&self) -> Result<TimeTrackEntry> {
         let req = self
@@ -89,12 +149,10 @@ impl Client {
                 "https://app.rippling.com/api/time_tracking/api/time_entries/start_clock",
             )
             .json(&json!({"source": "WEB_CLOCK", "role": self.role.as_ref().unwrap()}));
-        dbg!(&req);
         let res = req.send()?;
         match res.status() {
             reqwest::StatusCode::ACCEPTED => Ok(res.json::<TimeTrackEntry>()?),
-            reqwest::StatusCode::BAD_REQUEST => Err(Error::BadRequest(res.text()?)),
-            _ => Err(Error::UnhandledStatus(res.status().as_u16())),
+            _ => Err(Self::unexpected_status_error(res)),
         }
     }
 
@@ -123,6 +181,22 @@ impl Client {
         }
 
         map
+    }
+
+    fn unexpected_status_error(res: reqwest::blocking::Response) -> Error {
+        match res.headers().get("Content-Type") {
+            Some(val) => {
+                if val.to_str().unwrap().contains("application/json") {
+                    Error::ApiError {
+                        status: res.status().as_u16(),
+                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap()
+                    }
+                } else {
+                    Error::UnhandledStatus(res.status().as_u16())
+                }
+            },
+            None => { Error::UnhandledStatus(res.status().as_u16()) },
+        }
     }
 
     fn request_for<U>(&self, method: Method, url: U) -> RequestBuilder
@@ -161,13 +235,28 @@ pub struct TimeTrackEntry {
     #[serde(rename = "endTime")]
     pub end_time: Option<DateTime<Local>>,
     pub breaks: Vec<TimeTrackEntryBreak>,
+    #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
+    pub regular_hours: f32,
     // pub timezone: String,
+}
+
+fn f32_from_str<'de, D>(deserializer: D) -> std::result::Result<f32, D::Error>
+where D: Deserializer<'de>
+{
+    let s = String::deserialize(deserializer).unwrap();
+    Ok(s.parse::<f32>().unwrap())
 }
 
 impl TimeTrackEntry {
     pub fn current_break(&self) -> Option<&TimeTrackEntryBreak> {
         self.breaks.iter().find(|b| b.end_time.is_none())
     }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackPolicy {
+    #[serde(rename = "breakPolicy")]
+    pub break_policy_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -179,4 +268,53 @@ pub struct TimeTrackEntryBreak {
     pub start_time: DateTime<Local>,
     #[serde(rename = "endTime")]
     pub end_time: Option<DateTime<Local>>,
+}
+
+impl TimeTrackEntryBreak {
+    pub fn duration(&self) -> Option<Duration> {
+        match self.end_time {
+            Some(end) => Some(end - self.start_time),
+            None => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackBreakPolicy {
+    pub id: String,
+    #[serde(rename = "companyBreakTypes")]
+    pub break_types: Vec<TimeTrackBreakType>,
+    #[serde(rename = "eligibleBreakTypes")]
+    pub eligible_break_types: Vec<TimeTrackEligibleBreakType>,
+}
+
+impl TimeTrackBreakPolicy {
+    pub fn manual_break_type(&self) -> Option<&TimeTrackBreakType> {
+        let eligible_ids: Vec<&str> = self.eligible_break_types.iter().filter(|&bt| bt.allow_manual).map(|bt| bt.break_type_id.as_ref()).collect();
+        self.break_types.iter().find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackBreakType {
+    pub id: String,
+    #[serde(rename = "isDeleted")]
+    pub deleted: bool,
+    pub description: String,
+    #[serde(rename = "minLength")]
+    pub min_length: Option<f32>,
+    #[serde(rename = "enforceMinLength")]
+    pub enforce_min_length: bool,
+    #[serde(rename = "maxLength")]
+    pub max_length: Option<f32>,
+    #[serde(rename = "enforceMaxLength")]
+    pub enforce_max_length: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackEligibleBreakType {
+    #[serde(rename = "allowManual")]
+    allow_manual: bool,
+    #[serde(rename = "breakType")]
+    break_type_id: String,
 }
