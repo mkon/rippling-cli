@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer};
 use serde_json::json;
 use url::Url;
 
-use crate::persistance;
+use crate::persistence;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -89,7 +89,7 @@ impl Client {
     }
 
     pub fn load() -> Self {
-        let state = persistance::State::load();
+        let state = persistence::State::load();
         Self {
             access_token: state.access_token.expect("State missing access token"),
             company: state.company_id,
@@ -99,7 +99,7 @@ impl Client {
     }
 
     pub fn save(&self) {
-        let state = persistance::State {
+        let state = persistence::State {
             access_token: Some(self.access_token.clone()),
             company_id: self.company.clone(),
             role_id: self.role.clone(),

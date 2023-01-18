@@ -1,11 +1,11 @@
 mod client;
-mod persistance;
+mod persistence;
 
 use std::io;
 
 use clap::{Parser, Subcommand};
 use client::{AuthenticatedClient, PublicClient};
-use persistance::Settings;
+use persistence::Settings;
 use spinners::{Spinner, Spinners};
 
 #[derive(Parser, Debug)]
