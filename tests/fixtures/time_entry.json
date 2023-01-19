@@ -1,0 +1,98 @@
+{
+  "id": "some-entry-id",
+  "activePolicy": {
+    "timePolicy": "some-policy-id",
+    "breakPolicy": "some-break-policy",
+    "roleOverrides": {
+      "roleProperties": {
+        "role": "some-role-id",
+        "designatedApprover": "some-manager-role",
+        "defaultTimezone": "Europe/Berlin"
+      }
+    },
+    "isDirty": false
+  },
+  "runOriginalApprovalDeadline": null,
+  "premiums": {},
+  "jobShifts": [
+    {
+      "startTime": "2023-01-19T08:22:25Z",
+      "endTime": null,
+      "originalStartTime": null,
+      "originalEndTime": null,
+      "jobCodes": {},
+      "jobCodesWithNames": {},
+      "hoursOnlyInput": false
+    }
+  ],
+  "breaks": [],
+  "segments": [
+    {
+      "startTime": "2023-01-19T00:22:25-08:00",
+      "endTime": "2023-01-19T01:17:58-08:00",
+      "breakType": null,
+      "isOTEligible": true,
+      "companyEarningType": "some-earning-type",
+      "jobCodes": [],
+      "excludeFromBlendedRate": false,
+      "isPaid": true,
+      "mergedCompanyEarningType": null,
+      "baseCompanyEarningType": null,
+      "mergedEarningCode": null,
+      "baseEarningCode": null,
+      "overtimeMultiplier": null
+    }
+  ],
+  "photos": [],
+  "timezone": "Europe/Berlin",
+  "duration": "0.9259777777777777727250294346",
+  "regularHours": "0.9258333333333333333333333333",
+  "overtimeHours": "0",
+  "doubleOvertimeHours": "0",
+  "customEarningsIdToHours": {},
+  "customEarningsIdToName": {},
+  "unpaidBreakHours": "0",
+  "isDeleted": false,
+  "createdAt": "2023-01-19T00:22:25.588000-08:00",
+  "updatedAt": "2023-01-19T00:22:25.794000-08:00",
+  "globalPayrollRunId": null,
+  "status": "DRAFT",
+  "attestation": "NOT_SIGNED_OFF",
+  "isManuallyPaid": false,
+  "escalationApprovers": [],
+  "adminApprovalRequired": false,
+  "startTime": "2023-01-19T00:22:25-08:00",
+  "endTime": null,
+  "breakSurveyNecessary": false,
+  "missingBreakJustifications": [],
+  "comments": [],
+  "locations": [],
+  "notes": null,
+  "attachments": [],
+  "needsPayrollSync": false,
+  "needsTerminationPayrollSync": false,
+  "needsTransitionPayrollSync": false,
+  "appliedOfflineEvents": [],
+  "company": "some-company-id",
+  "role": "some-role-id",
+  "payrollRun": null,
+  "paySchedule": null,
+  "designatedApprover": "some-manager-role",
+  "workLocation": "some-location-id",
+  "department": "some-department-id",
+  "regularEarning": null,
+  "payPeriod": {
+    "countryCode": null,
+    "startDate": "2023-01-16",
+    "endDate": "2023-01-22",
+    "paySchedule": null,
+    "psStartDate": "2023-01-16",
+    "psEndDate": "2023-01-22"
+  },
+  "alerts": [],
+  "breakEligibility": {},
+  "isApprovable": true,
+  "ptoAccrualBonus": "0",
+  "runState": null,
+  "startDate": "2023-01-19"
+}

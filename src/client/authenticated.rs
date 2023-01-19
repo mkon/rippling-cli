@@ -227,6 +227,7 @@ where
     F: FnOnce(Response) -> StdResult<T, E>,
     Error: From<E>,
 {
+    // dbg!(&req);
     let res = req.send()?;
     // dbg!(&res);
     match res.status() {
@@ -364,10 +365,10 @@ pub struct TimeTrackEligibleBreakType {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    
 
     use chrono::Utc;
-    use mockito::mock;
+    use mockito::{mock, Matcher};
 
     use super::*;
 
@@ -375,13 +376,13 @@ mod tests {
         mock(method, path)
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(fs::read_to_string(format!("tests/fixtures/{fixture}.json")).unwrap())
-            .create()
+            .with_body_from_file(format!("tests/fixtures/{fixture}.json"))
+            .match_header("authorization", "Bearer access-token")
     }
 
     #[test]
     fn it_can_fetch_account_info() {
-        let _m = mock_api("GET", "/auth_ext/get_account_info", "account_info");
+        let _m = mock_api("GET", "/auth_ext/get_account_info", "account_info").create();
 
         let client = Client::new("access-token");
         let info = client.account_info().unwrap();
@@ -391,7 +392,7 @@ mod tests {
 
     #[test]
     fn it_can_fetch_current_entry() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries");
+        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
 
         let client = Client::new("access-token");
         let entry = client.tt_current_entry().unwrap().unwrap();
@@ -406,12 +407,48 @@ mod tests {
 
     #[test]
     fn it_can_fetch_a_break_policy() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy");
+        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy").create();
 
         let client = Client::new("access-token");
         let policy = client.tt_break_policy("policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
         assert_eq!(mybreak.id, "break-id-1");
         assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
+    }
+
+    #[test]
+    fn it_can_start_the_clock() {
+        let _m = mock_api("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
+
+        let mut client = Client::new("access-token");
+        client.company = Some("some-company-id".into());
+        client.role = Some("some-role-id".into());
+        let entry = client.tt_clock_start().unwrap();
+        assert_eq!(
+            entry.start_time.with_timezone(&Utc).to_rfc3339(),
+            "2023-01-19T08:22:25+00:00"
+        );
+    }
+
+    #[test]
+    fn it_can_stop_the_clock() {
+        let _m = mock_api("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
+
+        let mut client = Client::new("access-token");
+        client.company = Some("some-company-id".into());
+        client.role = Some("some-role-id".into());
+        let entry = client.tt_clock_stop(&"id").unwrap();
+        assert_eq!(
+            entry.start_time.with_timezone(&Utc).to_rfc3339(),
+            "2023-01-19T08:22:25+00:00"
+        );
     }
 }
