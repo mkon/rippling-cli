@@ -1,0 +1,70 @@
+[
+  {
+    "id": "some-role-id",
+    "role": {
+      "_id": {
+        "$oid": "some-role-id"
+      },
+      "company": {
+        "$oid": "some-company-id"
+      },
+      "createdAt": {
+        "$date": 1651526323377
+      },
+      "inviteEmail": "user@work.example",
+      "roleState": "ACTIVE",
+      "workEmail": "user@work.example",
+      "user_cache": {
+        "_id": {
+          "$oid": "user-cache-id"
+        },
+        "name": {
+          "title": null,
+          "first": "John",
+          "middle": null,
+          "last": "Doe",
+          "suffix": null,
+          "nickname": null,
+          "full": "John Doe",
+          "initials": "JD"
+        },
+        "entityLegalName": null,
+        "email": "user@home.example",
+        "isDeleted": false,
+        "is_staff": false,
+        "is_superuser": false,
+        "smallPhoto": "https://rippling.example/some-path-to-image",
+        "passwordCompromised": false
+      },
+      "isEmployee": true,
+      "isDeleted": false,
+      "isAdmin": false,
+      "isPartialAdmin": false,
+      "mayShowVaultRecoveryBanner": null
+    },
+    "company": {
+      "_id": {
+        "$oid": "some-company-id"
+      },
+      "legalName": "My Employer, Inc.",
+      "doingBusinessAsName": "My Employer, Inc.",
+      "soleProprietorName": null,
+      "isTestCompany": false,
+      "primaryEmail": "hr@work.example",
+      "createdAt": {
+        "$date": 1650045735370
+      },
+      "isDeleted": false
+    },
+    "companyTaxInfo": null,
+    "acl": null,
+    "2fa_enabled": false,
+    "pwd_settings": {
+      "minimumLength": null,
+      "requireAlphanumericValue": null,
+      "minimumComplexChars": null,
+      "allowSimpleValue": null,
+      "allowCompromisedPassword": false
+    }
+  }
+]

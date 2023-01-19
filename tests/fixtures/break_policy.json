@@ -1,0 +1,189 @@
+{
+  "id": "some-policy-id",
+  "companyBreakTypes": [
+    {
+      "id": "break-id-1",
+      "isDeleted": false,
+      "createdAt": "2022-12-12T09:32:57.966000-08:00",
+      "updatedAt": "2023-01-13T00:49:02.053000-08:00",
+      "description": "Lunch Break - Manually clock in/out",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": 900.0,
+      "enforceMinLength": true,
+      "maxLength": 7200.0,
+      "enforceMaxLength": true,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-2",
+      "isDeleted": false,
+      "createdAt": "2023-01-10T01:31:30.739000-08:00",
+      "updatedAt": "2023-01-11T03:55:04.969000-08:00",
+      "description": "15 minutes break - automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": true,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-3",
+      "isDeleted": true,
+      "createdAt": "2023-01-11T03:55:04.957000-08:00",
+      "updatedAt": "2023-01-11T04:01:29.927000-08:00",
+      "description": "2 break - automatically clock in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-4",
+      "isDeleted": false,
+      "createdAt": "2023-01-11T03:55:04.992000-08:00",
+      "updatedAt": "2023-01-11T03:55:04.993000-08:00",
+      "description": "30 Minutes Break - automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-4",
+      "isDeleted": false,
+      "createdAt": "2023-01-11T04:01:28.902000-08:00",
+      "updatedAt": "2023-01-11T04:01:28.902000-08:00",
+      "description": "60 Mins Break - Automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-5",
+      "isDeleted": false,
+      "createdAt": "2023-01-11T04:01:28.901000-08:00",
+      "updatedAt": "2023-01-11T04:01:28.902000-08:00",
+      "description": "2 hours break - automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-6",
+      "isDeleted": false,
+      "createdAt": "2023-01-11T04:01:28.914000-08:00",
+      "updatedAt": "2023-01-11T04:01:28.914000-08:00",
+      "description": "1.5 hour break - automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    },
+    {
+      "id": "break-id-7",
+      "isDeleted": false,
+      "createdAt": "2023-01-11T04:01:29.411000-08:00",
+      "updatedAt": "2023-01-11T04:01:29.412000-08:00",
+      "description": "45 Mins Break - Automatically clock back in",
+      "isPaid": false,
+      "unpaidAfter": null,
+      "isOTEligible": false,
+      "minLength": null,
+      "enforceMinLength": false,
+      "maxLength": null,
+      "enforceMaxLength": false,
+      "company": "some-company-id",
+      "breakPolicy": "some-policy-id"
+    }
+  ],
+  "isDeleted": false,
+  "createdAt": "2022-12-12T09:32:58.470000-08:00",
+  "updatedAt": "2023-01-13T00:49:02.539000-08:00",
+  "userDescription": "Policy description",
+  "isTemplatePolicy": false,
+  "isDefault": false,
+  "isFrozen": false,
+  "countryCode": null,
+  "eligibleBreakTypes": [
+    {
+      "allowManual": true,
+      "requireSurveyForAutoDeduction": true,
+      "eligibilityRules": [],
+      "breakType": "break-id-1"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-2"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-4"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-7"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-4"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-5"
+    },
+    {
+      "allowManual": false,
+      "requireSurveyForAutoDeduction": false,
+      "eligibilityRules": [],
+      "breakType": "break-id-6"
+    }
+  ],
+  "complianceRules": [],
+  "company": "some-company-id",
+  "jurisdictionMappingConfig": null,
+  "description": "Policy description"
+}

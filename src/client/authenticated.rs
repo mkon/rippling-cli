@@ -9,6 +9,9 @@ use serde::{Deserialize, Deserializer};
 use serde_json::json;
 use url::Url;
 
+#[cfg(test)]
+use mockito;
+
 use crate::persistence;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -129,7 +132,11 @@ impl Client {
         let req = self.get("time_tracking/api/time_entry_policies/get_active_policy");
         request_to_result(req, |r| {
             let policies = r.json::<HashMap<String, TimeTrackPolicy>>()?;
-            policies.into_iter().map(|(_, v)| v).next().ok_or(Error::MissingActivePolicy)
+            policies
+                .into_iter()
+                .map(|(_, v)| v)
+                .next()
+                .ok_or(Error::MissingActivePolicy)
         })
     }
 
@@ -207,8 +214,11 @@ impl Client {
     }
 
     fn url_for(&self, path: &str) -> Result<Url> {
-        let url = Url::parse("https://app.rippling.com/api/").unwrap();
-        Ok(url.join(path)?)
+        #[cfg(not(test))]
+        let url = "https://app.rippling.com/api/";
+        #[cfg(test)]
+        let url = &mockito::server_url();
+        Ok(Url::parse(url)?.join(path)?)
     }
 }
 
@@ -218,6 +228,7 @@ where
     Error: From<E>,
 {
     let res = req.send()?;
+    // dbg!(&res);
     match res.status() {
         reqwest::StatusCode::OK => f(res).map_err(Error::from),
         _ => Err(res.into()),
@@ -244,6 +255,8 @@ pub struct Oid {
 #[derive(Clone, Debug, Deserialize)]
 pub struct TimeTrackEntry {
     pub id: String,
+    #[serde(rename = "activePolicy")]
+    pub active_policy: TimeTrackActivePolicy,
     #[serde(rename = "startTime")]
     pub start_time: DateTime<Local>,
     #[serde(rename = "endTime")]
@@ -269,7 +282,9 @@ impl TimeTrackEntry {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackPolicy {
+pub struct TimeTrackActivePolicy {
+    #[serde(rename = "timePolicy")]
+    pub time_policy_id: String,
     #[serde(rename = "breakPolicy")]
     pub break_policy_id: String,
 }
@@ -292,6 +307,12 @@ impl TimeTrackEntryBreak {
             None => None,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TimeTrackPolicy {
+    #[serde(rename = "breakPolicy")]
+    pub break_policy_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -339,4 +360,54 @@ pub struct TimeTrackEligibleBreakType {
     allow_manual: bool,
     #[serde(rename = "breakType")]
     break_type_id: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use mockito::mock;
+
+    use super::*;
+
+    fn mock_api(method: &str, path: &str, fixture: &str) -> mockito::Mock {
+        mock(method, path)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(fs::read_to_string(format!("tests/fixtures/{fixture}.json")).unwrap())
+            .create()
+    }
+
+    #[test]
+    fn it_can_fetch_account_info() {
+        let _m = mock_api("GET", "/auth_ext/get_account_info", "account_info");
+
+        let client = Client::new("access-token");
+        let info = client.account_info().unwrap();
+        assert_eq!(info.role.company.id, "some-company-id");
+        assert_eq!(info.id, "some-role-id");
+    }
+
+    #[test]
+    fn it_can_fetch_current_entry() {
+        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries");
+
+        let client = Client::new("access-token");
+        let entry = client.tt_current_entry().unwrap().unwrap();
+        assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
+        assert_eq!(entry.start_time.to_rfc3339(), "2023-01-19T09:22:25+01:00");
+        assert_eq!(entry.regular_hours, 0.92583334);
+        assert!(entry.current_break().is_none());
+    }
+
+    #[test]
+    fn it_can_fetch_a_break_policy() {
+        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy");
+
+        let client = Client::new("access-token");
+        let policy = client.tt_break_policy("policy-id").unwrap();
+        let mybreak = policy.manual_break_type().unwrap();
+        assert_eq!(mybreak.id, "break-id-1");
+        assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
+    }
 }
