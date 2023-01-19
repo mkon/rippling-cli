@@ -366,6 +366,7 @@ pub struct TimeTrackEligibleBreakType {
 mod tests {
     use std::fs;
 
+    use chrono::Utc;
     use mockito::mock;
 
     use super::*;
@@ -395,7 +396,10 @@ mod tests {
         let client = Client::new("access-token");
         let entry = client.tt_current_entry().unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
-        assert_eq!(entry.start_time.to_rfc3339(), "2023-01-19T09:22:25+01:00");
+        assert_eq!(
+            entry.start_time.with_timezone(&Utc).to_rfc3339(),
+            "2023-01-19T08:22:25+00:00"
+        );
         assert_eq!(entry.regular_hours, 0.92583334);
         assert!(entry.current_break().is_none());
     }
