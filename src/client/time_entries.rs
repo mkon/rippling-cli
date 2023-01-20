@@ -15,14 +15,14 @@ pub fn current_entry(session: &Session) -> Result<Option<TimeTrackEntry>> {
 
 pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
     let req = session
-        .post(&format!("time_tracking/api/time_entries/{id}/end_break"))?
+        .post(&format!("time_tracking/api/time_entries/{id}/start_break"))?
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
     super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
 }
 
 pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
     let req = session
-        .post(&format!("time_tracking/api/time_entries/{id}/start_break"))?
+        .post(&format!("time_tracking/api/time_entries/{id}/end_break"))?
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
     super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
 }
@@ -152,5 +152,29 @@ mod tests {
 
         let entry = end_clock(&session(), &"id").unwrap();
         assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
+    }
+
+    #[test]
+    fn it_can_take_a_break() {
+        let m = mock_api("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
+
+        start_break(&session(), &"id", &"break-type-id").unwrap();
+        m.assert()
+    }
+
+    #[test]
+    fn it_can_stop_a_break() {
+        let m = mock_api("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
+
+        end_break(&session(), &"id", &"break-type-id").unwrap();
+        m.assert()
     }
 }
