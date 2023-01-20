@@ -1,12 +1,15 @@
-mod authenticated;
+pub mod account_info;
+pub mod break_policy;
 mod public;
 mod session;
+pub mod time_entries;
 
 use std::collections::HashMap;
 
-pub use authenticated::Client as AuthenticatedClient;
-pub use authenticated::TimeTrackEntry;
 pub use public::Client as PublicClient;
+use reqwest::blocking::RequestBuilder;
+use reqwest::blocking::Response;
+pub use session::Session;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -16,7 +19,6 @@ pub enum Error {
         status: u16,
         data: HashMap<String, serde_json::Value>,
     },
-    MissingActivePolicy,
     Wrapping(Box<dyn std::error::Error>),
     UnexpectedPayload,
     UnhandledStatus(u16),
@@ -30,7 +32,6 @@ impl std::fmt::Display for Error {
                 Some(string) => write!(f, "{string}"),
                 None => write!(f, "Unexpected response status {status}"),
             },
-            Self::MissingActivePolicy => write!(f, "No active policy"),
             Self::UnexpectedPayload => write!(f, "Unexpected account info response"),
             Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
             Self::Wrapping(err) => write!(f, "{err}"),
@@ -65,5 +66,19 @@ impl From<reqwest::blocking::Response> for Error {
             }
             None => Error::UnhandledStatus(res.status().as_u16()),
         }
+    }
+}
+
+fn request_to_result<E, F, T>(req: RequestBuilder, f: F) -> Result<T>
+where
+    F: FnOnce(Response) -> std::result::Result<T, E>,
+    Error: From<E>,
+{
+    // dbg!(&req);
+    let res = req.send()?;
+    // dbg!(&res);
+    match res.status() {
+        reqwest::StatusCode::OK => f(res).map_err(Error::from),
+        _ => Err(res.into()),
     }
 }

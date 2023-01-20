@@ -4,7 +4,7 @@ mod persistence;
 use std::io;
 
 use clap::{Parser, Subcommand};
-use client::{AuthenticatedClient, PublicClient};
+use client::{account_info, break_policy, time_entries, PublicClient, Session};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
 
@@ -25,9 +25,6 @@ enum Commands {
 
     /// Authenticate against rippling
     Authenticate,
-
-    /// Test
-    Test,
 
     /// Clock-in Status
     Status,
@@ -63,7 +60,6 @@ fn main() {
         Commands::ClockIn => tt_clock_in(),
         Commands::ClockOut => tt_clock_out(),
         Commands::Status => tt_status(),
-        Commands::Test => test(),
         Commands::StartBreak => tt_break_start(),
         Commands::EndBreak => tt_break_end(),
         Commands::Configure { command } => {
@@ -85,37 +81,29 @@ fn authenticate(cfg: &Settings) {
 
     let client = PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
-        Ok(mut client) => {
-            client.setup_company_and_role().expect("Failed to query account info");
-            client.save();
+        Ok(mut session) => {
+            let info = account_info::fetch(&session).expect("Failed to query account info");
+            session.set_company_and_role(info.role.company.id, info.id);
+            session.save();
         }
         _ => println!("Authentication failed"),
     }
 }
 
-fn test() {
-    let client = AuthenticatedClient::load();
-
-    let info = client.account_info().unwrap();
-    dbg!(&info);
-}
-
 fn tt_break_start() {
-    let client = AuthenticatedClient::load();
+    let session = Session::load();
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
 
-    let policy = client.tt_active_policy().expect("Unable to fetch policy");
-    let break_policy = client
-        .tt_break_policy(&policy.break_policy_id)
-        .expect("Unable to fetch break policy");
-    let result = client.tt_current_entry().expect("Unable to fetch current entry");
-    match result {
+    let current = time_entries::current_entry(&session).expect("Unable to fetch current entry");
+    match current {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
             Some(br) => sp.stop_with_message(format!("Already on a break since {}!", br.start_time.format("%R"))),
             None => {
+                let break_policy =
+                    break_policy::fetch(&session, &entry.active_policy.break_policy_id).expect("Unable to fetch break policy");
                 let break_type = break_policy.manual_break_type().expect("No manual break type");
-                let entry = client.tt_break_start(&entry.id, &break_type.id).unwrap();
+                let entry = time_entries::start_break(&session, &entry.id, &break_type.id).unwrap();
                 let br = entry.current_break().unwrap();
                 sp.stop_with_message(format!("Started break at {}!", br.start_time.format("%R")))
             }
@@ -124,16 +112,16 @@ fn tt_break_start() {
 }
 
 fn tt_break_end() {
-    let client = AuthenticatedClient::load();
+    let session = Session::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let result = client.tt_current_entry().unwrap();
-    match result {
+    let current = time_entries::current_entry(&session).expect("Unable to fetch current entry");
+    match current {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
             None => sp.stop_with_message(format!("Not on a break!")),
             Some(br) => {
-                let res = client.tt_break_end(&entry.id, &br.break_type_id).unwrap();
+                let res = time_entries::end_break(&session, &entry.id, &br.break_type_id).unwrap();
                 let br = res.breaks.last().unwrap();
                 sp.stop_with_message(format!(
                     "Stopped break at {}, after {} hours!",
@@ -146,22 +134,22 @@ fn tt_break_end() {
 }
 
 fn tt_clock_in() {
-    let client = AuthenticatedClient::load();
+    let session = Session::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    match client.tt_clock_start() {
+    match time_entries::start_clock(&session) {
         Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", entry.start_time.format("%R"))),
         Err(err) => sp.stop_with_message(format!("Error: {err}!")),
     }
 }
 
 fn tt_clock_out() {
-    let client = AuthenticatedClient::load();
+    let session = Session::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let entry = client.tt_current_entry().unwrap();
+    let entry = time_entries::current_entry(&session).unwrap();
     match entry {
-        Some(entry) => match client.tt_clock_stop(&entry.id) {
+        Some(entry) => match time_entries::end_clock(&session, &entry.id) {
             Ok(_) => sp.stop_with_message("Clocked out!".into()),
             Err(err) => sp.stop_with_message(format!("Error: {err}!")),
         },
@@ -170,10 +158,10 @@ fn tt_clock_out() {
 }
 
 fn tt_status() {
-    let client = AuthenticatedClient::load();
+    let session = Session::load();
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let entry = client.tt_current_entry().unwrap();
+    let entry = time_entries::current_entry(&session).unwrap();
     match entry {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
@@ -194,7 +182,7 @@ fn format_hours(hours: f32) -> String {
 }
 
 fn ask_user_input(prompt: &str) -> String {
-    println!("{prompt}");
+    println!("> {prompt}");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read input");
     input.trim().to_owned()

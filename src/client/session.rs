@@ -8,6 +8,7 @@ use url::Url;
 use super::Result;
 use crate::persistence;
 
+#[derive(Clone, Debug)]
 pub struct Session {
     access_token: String,
     pub company: Option<String>,
@@ -44,9 +45,9 @@ impl Session {
         state.store();
     }
 
-    pub fn company_and_role_set(&self) -> bool {
-        [&self.company, &self.role].iter().all(|f| f.is_some())
-    }
+    // pub fn company_and_role_set(&self) -> bool {
+    //     [&self.company, &self.role].iter().all(|f| f.is_some())
+    // }
 
     pub fn set_company_and_role(&mut self, company: String, role: String) {
         self.company = Some(company);
@@ -55,6 +56,14 @@ impl Session {
 
     pub fn role(&self) -> Option<&str> {
         self.role.as_ref().map(|s| s.as_str())
+    }
+
+    pub fn get(&self, path: &str) -> Result<RequestBuilder> {
+        self.request(Method::GET, path)
+    }
+
+    pub fn post(&self, path: &str) -> Result<RequestBuilder> {
+        self.request(Method::POST, path)
     }
 
     pub fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {

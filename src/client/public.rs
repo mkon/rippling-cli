@@ -35,7 +35,7 @@ impl Client {
     }
 
     /// Returns a new authenticated client
-    pub fn authenticate(&self, username: &str, password: &str) -> Result<super::AuthenticatedClient> {
+    pub fn authenticate(&self, username: &str, password: &str) -> Result<super::Session> {
         let params = [("grant_type", "password"), ("username", username), ("password", password)];
         let req = reqwest::blocking::Client::new()
             .post("https://app.rippling.com/api/o/token/")
@@ -43,7 +43,7 @@ impl Client {
             .basic_auth(&self.id, Some(&self.secret));
         let result: TokenJson = req.send()?.json()?;
 
-        Ok(super::AuthenticatedClient::new(Session::new(result.access_token)))
+        Ok(Session::new(result.access_token))
     }
 }
 
