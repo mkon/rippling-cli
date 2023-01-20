@@ -19,6 +19,10 @@ jobs:
     - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
     - name: Check
-      run: cargo check
-    - name: Run tests
+      run: cargo check --locked
+    - name: Formatting
+      run: |
+        rustfmt src/**/*.rs
+        git diff --exit-code src
+    - name: Tests
       run: cargo test
