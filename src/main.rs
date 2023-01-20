@@ -1,10 +1,11 @@
 mod client;
+mod commands;
 mod persistence;
 
-use std::io;
+use std::{io};
 
 use clap::{Parser, Subcommand};
-use client::{account_info, break_policy, time_entries, PublicClient, Session};
+use client::{account_info, time_entries, PublicClient, Session};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
 
@@ -60,8 +61,8 @@ fn main() {
         Commands::ClockIn => tt_clock_in(),
         Commands::ClockOut => tt_clock_out(),
         Commands::Status => tt_status(),
-        Commands::StartBreak => tt_break_start(),
-        Commands::EndBreak => tt_break_end(),
+        Commands::StartBreak => run_break_start(),
+        Commands::EndBreak => run_break_end(),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
@@ -90,46 +91,40 @@ fn authenticate(cfg: &Settings) {
     }
 }
 
-fn tt_break_start() {
-    let session = Session::load();
-    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-
-    let current = time_entries::current_entry(&session).expect("Unable to fetch current entry");
-    match current {
-        None => sp.stop_with_message("Not clocked in!".into()),
-        Some(entry) => match entry.current_break() {
-            Some(br) => sp.stop_with_message(format!("Already on a break since {}!", br.start_time.format("%R"))),
-            None => {
-                let break_policy =
-                    break_policy::fetch(&session, &entry.active_policy.break_policy_id).expect("Unable to fetch break policy");
-                let break_type = break_policy.manual_break_type().expect("No manual break type");
-                let entry = time_entries::start_break(&session, &entry.id, &break_type.id).unwrap();
-                let br = entry.current_break().unwrap();
-                sp.stop_with_message(format!("Started break at {}!", br.start_time.format("%R")))
-            }
-        },
-    }
+fn run_break_start() {
+    wrap_in_spinner(commands::start_break, |br| {
+        format!("Started break at {}!", br.start_time.format("%R"))
+    })
 }
 
-fn tt_break_end() {
-    let session = Session::load();
+fn run_break_end() {
+    wrap_in_spinner(commands::end_break, |br| {
+        format!(
+            "Stopped break at {}, after {} hours!",
+            br.end_time.unwrap().format("%R"),
+            format_hours(br.duration().unwrap().num_minutes() as f32 / 60.0)
+        )
+    })
+}
 
+fn wrap_in_spinner<T, C, O>(cmd: C, ok: O)
+where
+    C: FnOnce() -> commands::Result<T>,
+    O: FnOnce(T) -> String,
+{
+    wrap_in_spinner_or(cmd, ok, |e| format!("Error: {e}"))
+}
+
+fn wrap_in_spinner_or<T,C,O,E>(cmd: C, ok: O, er: E)
+where
+    C: FnOnce() -> commands::Result<T>,
+    O: FnOnce(T) -> String,
+    E: FnOnce(commands::Error) -> String,
+{
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let current = time_entries::current_entry(&session).expect("Unable to fetch current entry");
-    match current {
-        None => sp.stop_with_message("Not clocked in!".into()),
-        Some(entry) => match entry.current_break() {
-            None => sp.stop_with_message(format!("Not on a break!")),
-            Some(br) => {
-                let res = time_entries::end_break(&session, &entry.id, &br.break_type_id).unwrap();
-                let br = res.breaks.last().unwrap();
-                sp.stop_with_message(format!(
-                    "Stopped break at {}, after {} hours!",
-                    br.end_time.unwrap().format("%R"),
-                    format_hours(br.duration().unwrap().num_minutes() as f32 / 60.0)
-                ));
-            }
-        },
+    match cmd() {
+        Ok(t) => sp.stop_with_message(ok(t)),
+        Err(e) => sp.stop_with_message(er(e)),
     }
 }
 
