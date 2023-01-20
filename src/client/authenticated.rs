@@ -1,126 +1,45 @@
 use std::{collections::HashMap, result::Result as StdResult};
 
 use chrono::{DateTime, Duration, Local};
-use reqwest::{
-    blocking::{RequestBuilder, Response},
-    header::{HeaderMap, HeaderValue},
-};
+use reqwest::Method;
+use reqwest::blocking::{RequestBuilder, Response};
 use serde::{Deserialize, Deserializer};
 use serde_json::json;
-use url::Url;
 
 #[cfg(test)]
 use mockito;
 
-use crate::persistence;
-
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-    ApiError {
-        status: u16,
-        data: HashMap<String, serde_json::Value>,
-    },
-    MissingActivePolicy,
-    Wrapping(Box<dyn std::error::Error>),
-    UnexpectedAccountInfo,
-    UnhandledStatus(u16),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        dbg!(self);
-        match self {
-            Self::ApiError { status, data } => match data.get("detail") {
-                Some(string) => write!(f, "{string}"),
-                None => write!(f, "Unexpected response status {status}"),
-            },
-            Self::MissingActivePolicy => write!(f, "No active policy"),
-            Self::UnexpectedAccountInfo => write!(f, "Unexpected account info response"),
-            Self::UnhandledStatus(status) => write!(f, "Unexpected response status {status}"),
-            Self::Wrapping(err) => write!(f, "{err}"),
-        }
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
-        Error::Wrapping(Box::new(value))
-    }
-}
-
-impl From<url::ParseError> for Error {
-    fn from(value: url::ParseError) -> Self {
-        Error::Wrapping(Box::new(value))
-    }
-}
-
-impl From<reqwest::blocking::Response> for Error {
-    fn from(res: reqwest::blocking::Response) -> Self {
-        match res.headers().get("Content-Type") {
-            Some(val) => {
-                if val.to_str().unwrap().contains("application/json") {
-                    Error::ApiError {
-                        status: res.status().as_u16(),
-                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap(),
-                    }
-                } else {
-                    Error::UnhandledStatus(res.status().as_u16())
-                }
-            }
-            None => Error::UnhandledStatus(res.status().as_u16()),
-        }
-    }
-}
+use super::session::Session;
+use super::{Error, Result};
 
 pub struct Client {
-    access_token: String,
-    company: Option<String>,
-    role: Option<String>,
-    session: reqwest::blocking::Client,
+    session: Session,
 }
 
 impl Client {
-    pub fn new(token: &str) -> Self {
-        Self {
-            access_token: token.to_owned(),
-            company: None,
-            role: None,
-            session: reqwest::blocking::Client::new(),
-        }
+    pub fn new(session: Session) -> Self {
+        Self { session: session }
     }
 
     pub fn load() -> Self {
-        let state = persistence::State::load();
-        Self {
-            access_token: state.access_token.expect("State missing access token"),
-            company: state.company_id,
-            role: state.role_id,
-            session: reqwest::blocking::Client::new(),
-        }
+        Self::new(Session::load())
     }
 
     pub fn save(&self) {
-        let state = persistence::State {
-            access_token: Some(self.access_token.clone()),
-            company_id: self.company.clone(),
-            role_id: self.role.clone(),
-        };
-        state.store();
+        self.session.save();
     }
 
     pub fn account_info(&self) -> Result<AccountInfo> {
-        let req = self.get("auth_ext/get_account_info");
+        let req = self.get("auth_ext/get_account_info")?;
         request_to_result(req, |r| {
             let list = r.json::<Vec<AccountInfo>>()?;
-            list.into_iter().next().ok_or(Error::UnexpectedAccountInfo)
+            list.into_iter().next().ok_or(Error::UnexpectedPayload)
         })
     }
 
     pub fn tt_current_entry(&self) -> Result<Option<TimeTrackEntry>> {
         let req = self
-            .get("time_tracking/api/time_entries")
+            .get("time_tracking/api/time_entries")?
             .query(&[("endTime", "")]); // Filter for entries with no end time
         request_to_result(req, |r| {
             let entries = r.json::<Vec<TimeTrackEntry>>()?;
@@ -129,7 +48,8 @@ impl Client {
     }
 
     pub fn tt_active_policy(&self) -> Result<TimeTrackPolicy> {
-        let req = self.get("time_tracking/api/time_entry_policies/get_active_policy");
+        let req = self
+            .get("time_tracking/api/time_entry_policies/get_active_policy")?;
         request_to_result(req, |r| {
             let policies = r.json::<HashMap<String, TimeTrackPolicy>>()?;
             policies
@@ -141,84 +61,54 @@ impl Client {
     }
 
     pub fn tt_break_policy(&self, id: &str) -> Result<TimeTrackBreakPolicy> {
-        let req = self.get(&format!("time_tracking/api/time_entry_break_policies/{id}"));
+        let req = self
+            .get(&format!("time_tracking/api/time_entry_break_policies/{id}"))?;
         request_to_result(req, |r| r.json::<TimeTrackBreakPolicy>())
     }
 
     pub fn tt_break_end(&self, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
+            .post(&format!("time_tracking/api/time_entries/{id}/end_break"))?
             .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
         request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn tt_break_start(&self, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
+            .post(&format!("time_tracking/api/time_entries/{id}/start_break"))?
             .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
         request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn tt_clock_start(&self) -> Result<TimeTrackEntry> {
         let req = self
-            .post("time_tracking/api/time_entries/start_clock")
-            .json(&json!({"source": "WEB_CLOCK", "role": self.role.as_ref().unwrap()}));
+            .post("time_tracking/api/time_entries/start_clock")?
+            .json(&json!({"source": "WEB_CLOCK", "role": self.session.role().unwrap()}));
         request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn tt_clock_stop(&self, id: &str) -> Result<TimeTrackEntry> {
         let req = self
-            .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
+            .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))?
             .json(&json!({"source": "WEB_CLOCK"}));
         request_to_result(req, |r| r.json::<TimeTrackEntry>())
     }
 
     pub fn setup_company_and_role(&mut self) -> Result<()> {
-        if [&self.company, &self.role].iter().any(|f| f.is_none()) {
+        if !self.session.company_and_role_set() {
             let info = self.account_info()?;
-            if let None = &self.company {
-                self.company = Some(info.role.company.id.to_owned());
-            }
-            if let None = &self.role {
-                self.role = Some(info.id.to_owned());
-            }
+            self.session
+                .set_company_and_role(info.role.company.id, info.id);
         }
         Ok(())
     }
 
-    fn get(&self, path: &str) -> RequestBuilder {
-        self.session
-            .get(self.url_for(&path).unwrap())
-            .bearer_auth(&self.access_token)
-            .headers(self.request_headers())
+    fn get(&self, path: &str) -> Result<RequestBuilder> {
+        self.session.request(Method::GET, path)
     }
 
-    fn post(&self, path: &str) -> RequestBuilder {
-        self.session
-            .post(self.url_for(&path).unwrap())
-            .bearer_auth(&self.access_token)
-            .headers(self.request_headers())
-    }
-
-    fn request_headers(&self) -> HeaderMap {
-        let mut map = HeaderMap::new();
-
-        if let Some(value) = &self.company {
-            map.append("company", HeaderValue::from_str(value).unwrap());
-        }
-        if let Some(value) = &self.role {
-            map.append("role", HeaderValue::from_str(value).unwrap());
-        }
-
-        map
-    }
-
-    fn url_for(&self, path: &str) -> Result<Url> {
-        #[cfg(not(test))]
-        let url = "https://app.rippling.com/api/";
-        #[cfg(test)]
-        let url = &mockito::server_url();
-        Ok(Url::parse(url)?.join(path)?)
+    fn post(&self, path: &str) -> Result<RequestBuilder> {
+        self.session.request(Method::POST, path)
     }
 }
 
@@ -365,8 +255,6 @@ pub struct TimeTrackEligibleBreakType {
 
 #[cfg(test)]
 mod tests {
-    
-
     use chrono::Utc;
     use mockito::{mock, Matcher};
 
@@ -380,22 +268,31 @@ mod tests {
             .match_header("authorization", "Bearer access-token")
     }
 
+    fn client() -> Client {
+        let mut session = Session::new("access-token".into());
+        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
+        Client::new(session)
+    }
+
     #[test]
     fn it_can_fetch_account_info() {
         let _m = mock_api("GET", "/auth_ext/get_account_info", "account_info").create();
 
-        let client = Client::new("access-token");
-        let info = client.account_info().unwrap();
+        let info = client().account_info().unwrap();
         assert_eq!(info.role.company.id, "some-company-id");
         assert_eq!(info.id, "some-role-id");
     }
 
     #[test]
     fn it_can_fetch_current_entry() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
+        let _m = mock_api(
+            "GET",
+            "/time_tracking/api/time_entries?endTime=",
+            "time_entries",
+        )
+        .create();
 
-        let client = Client::new("access-token");
-        let entry = client.tt_current_entry().unwrap().unwrap();
+        let entry = client().tt_current_entry().unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
         assert_eq!(
             entry.start_time.with_timezone(&Utc).to_rfc3339(),
@@ -407,10 +304,14 @@ mod tests {
 
     #[test]
     fn it_can_fetch_a_break_policy() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy").create();
+        let _m = mock_api(
+            "GET",
+            "/time_tracking/api/time_entry_break_policies/policy-id",
+            "break_policy",
+        )
+        .create();
 
-        let client = Client::new("access-token");
-        let policy = client.tt_break_policy("policy-id").unwrap();
+        let policy = client().tt_break_policy("policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
         assert_eq!(mybreak.id, "break-id-1");
         assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
@@ -418,16 +319,19 @@ mod tests {
 
     #[test]
     fn it_can_start_the_clock() {
-        let _m = mock_api("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
-            .match_header("company", "some-company-id")
-            .match_header("role", "some-role-id")
-            .create();
+        let _m = mock_api(
+            "POST",
+            "/time_tracking/api/time_entries/start_clock",
+            "time_entry",
+        )
+        .match_body(Matcher::Json(
+            json!({"source": "WEB_CLOCK", "role": "some-role-id"}),
+        ))
+        .match_header("company", "some-company-id")
+        .match_header("role", "some-role-id")
+        .create();
 
-        let mut client = Client::new("access-token");
-        client.company = Some("some-company-id".into());
-        client.role = Some("some-role-id".into());
-        let entry = client.tt_clock_start().unwrap();
+        let entry = client().tt_clock_start().unwrap();
         assert_eq!(
             entry.start_time.with_timezone(&Utc).to_rfc3339(),
             "2023-01-19T08:22:25+00:00"
@@ -436,16 +340,17 @@ mod tests {
 
     #[test]
     fn it_can_stop_the_clock() {
-        let _m = mock_api("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
-            .match_header("company", "some-company-id")
-            .match_header("role", "some-role-id")
-            .create();
+        let _m = mock_api(
+            "POST",
+            "/time_tracking/api/time_entries/id/stop_clock",
+            "time_entry",
+        )
+        .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
+        .match_header("company", "some-company-id")
+        .match_header("role", "some-role-id")
+        .create();
 
-        let mut client = Client::new("access-token");
-        client.company = Some("some-company-id".into());
-        client.role = Some("some-role-id".into());
-        let entry = client.tt_clock_stop(&"id").unwrap();
+        let entry = client().tt_clock_stop(&"id").unwrap();
         assert_eq!(
             entry.start_time.with_timezone(&Utc).to_rfc3339(),
             "2023-01-19T08:22:25+00:00"

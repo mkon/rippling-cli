@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use regex::Regex;
 use serde::Deserialize;
 
-use super::{Error, Result};
+use super::{Error, Result, session::Session};
 
 #[derive(Debug)]
 pub struct Client {
@@ -30,7 +30,7 @@ impl Client {
                 let client = Self::new(data.get("CLIENT_ID").unwrap(), data.get("CLIENT_SECRET").unwrap());
                 Ok(client)
             },
-            None => Err(Error {  }),
+            None => Err(Error::UnexpectedPayload),
         }
     }
 
@@ -47,7 +47,7 @@ impl Client {
             .basic_auth(&self.id, Some(&self.secret));
         let result: TokenJson = req.send()?.json()?;
 
-        Ok(super::AuthenticatedClient::new(&result.access_token))
+        Ok(super::AuthenticatedClient::new(Session::new(result.access_token)))
     }
 }
 
