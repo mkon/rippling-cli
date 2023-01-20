@@ -1,8 +1,12 @@
-use reqwest::{blocking::RequestBuilder, header::{HeaderMap, HeaderValue}, Method};
+use reqwest::{
+    blocking::RequestBuilder,
+    header::{HeaderMap, HeaderValue},
+    Method,
+};
 use url::Url;
 
-use crate::persistence;
 use super::Result;
+use crate::persistence;
 
 pub struct Session {
     access_token: String,
@@ -55,7 +59,8 @@ impl Session {
 
     pub fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = self.url_for(&path)?;
-        let rb = self.connection
+        let rb = self
+            .connection
             .request(method, url)
             .bearer_auth(&self.access_token)
             .headers(self.request_headers());

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use regex::Regex;
 use serde::Deserialize;
 
-use super::{Error, Result, session::Session};
+use super::{session::Session, Error, Result};
 
 #[derive(Debug)]
 pub struct Client {
@@ -29,18 +29,14 @@ impl Client {
                 let data: HashMap<String, String> = serde_json::from_str(&m[1]).unwrap();
                 let client = Self::new(data.get("CLIENT_ID").unwrap(), data.get("CLIENT_SECRET").unwrap());
                 Ok(client)
-            },
+            }
             None => Err(Error::UnexpectedPayload),
         }
     }
 
     /// Returns a new authenticated client
     pub fn authenticate(&self, username: &str, password: &str) -> Result<super::AuthenticatedClient> {
-        let params = [
-            ("grant_type", "password"),
-            ("username", username),
-            ("password", password),
-        ];
+        let params = [("grant_type", "password"), ("username", username), ("password", password)];
         let req = reqwest::blocking::Client::new()
             .post("https://app.rippling.com/api/o/token/")
             .form(&params)

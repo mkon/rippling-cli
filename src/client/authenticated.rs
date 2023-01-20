@@ -1,8 +1,8 @@
 use std::{collections::HashMap, result::Result as StdResult};
 
 use chrono::{DateTime, Duration, Local};
-use reqwest::Method;
 use reqwest::blocking::{RequestBuilder, Response};
+use reqwest::Method;
 use serde::{Deserialize, Deserializer};
 use serde_json::json;
 
@@ -38,9 +38,7 @@ impl Client {
     }
 
     pub fn tt_current_entry(&self) -> Result<Option<TimeTrackEntry>> {
-        let req = self
-            .get("time_tracking/api/time_entries")?
-            .query(&[("endTime", "")]); // Filter for entries with no end time
+        let req = self.get("time_tracking/api/time_entries")?.query(&[("endTime", "")]); // Filter for entries with no end time
         request_to_result(req, |r| {
             let entries = r.json::<Vec<TimeTrackEntry>>()?;
             Result::Ok(entries.into_iter().next())
@@ -48,21 +46,15 @@ impl Client {
     }
 
     pub fn tt_active_policy(&self) -> Result<TimeTrackPolicy> {
-        let req = self
-            .get("time_tracking/api/time_entry_policies/get_active_policy")?;
+        let req = self.get("time_tracking/api/time_entry_policies/get_active_policy")?;
         request_to_result(req, |r| {
             let policies = r.json::<HashMap<String, TimeTrackPolicy>>()?;
-            policies
-                .into_iter()
-                .map(|(_, v)| v)
-                .next()
-                .ok_or(Error::MissingActivePolicy)
+            policies.into_iter().map(|(_, v)| v).next().ok_or(Error::MissingActivePolicy)
         })
     }
 
     pub fn tt_break_policy(&self, id: &str) -> Result<TimeTrackBreakPolicy> {
-        let req = self
-            .get(&format!("time_tracking/api/time_entry_break_policies/{id}"))?;
+        let req = self.get(&format!("time_tracking/api/time_entry_break_policies/{id}"))?;
         request_to_result(req, |r| r.json::<TimeTrackBreakPolicy>())
     }
 
@@ -97,8 +89,7 @@ impl Client {
     pub fn setup_company_and_role(&mut self) -> Result<()> {
         if !self.session.company_and_role_set() {
             let info = self.account_info()?;
-            self.session
-                .set_company_and_role(info.role.company.id, info.id);
+            self.session.set_company_and_role(info.role.company.id, info.id);
         }
         Ok(())
     }
@@ -223,9 +214,7 @@ impl TimeTrackBreakPolicy {
             .filter(|&bt| bt.allow_manual)
             .map(|bt| bt.break_type_id.as_ref())
             .collect();
-        self.break_types
-            .iter()
-            .find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
+        self.break_types.iter().find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
     }
 }
 
@@ -285,31 +274,18 @@ mod tests {
 
     #[test]
     fn it_can_fetch_current_entry() {
-        let _m = mock_api(
-            "GET",
-            "/time_tracking/api/time_entries?endTime=",
-            "time_entries",
-        )
-        .create();
+        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
 
         let entry = client().tt_current_entry().unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
-        assert_eq!(
-            entry.start_time.with_timezone(&Utc).to_rfc3339(),
-            "2023-01-19T08:22:25+00:00"
-        );
+        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
         assert_eq!(entry.regular_hours, 0.92583334);
         assert!(entry.current_break().is_none());
     }
 
     #[test]
     fn it_can_fetch_a_break_policy() {
-        let _m = mock_api(
-            "GET",
-            "/time_tracking/api/time_entry_break_policies/policy-id",
-            "break_policy",
-        )
-        .create();
+        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy").create();
 
         let policy = client().tt_break_policy("policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
@@ -319,41 +295,25 @@ mod tests {
 
     #[test]
     fn it_can_start_the_clock() {
-        let _m = mock_api(
-            "POST",
-            "/time_tracking/api/time_entries/start_clock",
-            "time_entry",
-        )
-        .match_body(Matcher::Json(
-            json!({"source": "WEB_CLOCK", "role": "some-role-id"}),
-        ))
-        .match_header("company", "some-company-id")
-        .match_header("role", "some-role-id")
-        .create();
+        let _m = mock_api("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
 
         let entry = client().tt_clock_start().unwrap();
-        assert_eq!(
-            entry.start_time.with_timezone(&Utc).to_rfc3339(),
-            "2023-01-19T08:22:25+00:00"
-        );
+        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
     }
 
     #[test]
     fn it_can_stop_the_clock() {
-        let _m = mock_api(
-            "POST",
-            "/time_tracking/api/time_entries/id/stop_clock",
-            "time_entry",
-        )
-        .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
-        .match_header("company", "some-company-id")
-        .match_header("role", "some-role-id")
-        .create();
+        let _m = mock_api("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
+            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
+            .match_header("company", "some-company-id")
+            .match_header("role", "some-role-id")
+            .create();
 
         let entry = client().tt_clock_stop(&"id").unwrap();
-        assert_eq!(
-            entry.start_time.with_timezone(&Utc).to_rfc3339(),
-            "2023-01-19T08:22:25+00:00"
-        );
+        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
     }
 }

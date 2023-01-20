@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 const APP_NAME: &str = "rippling-cli";
 
@@ -17,9 +17,7 @@ pub struct Settings {
 
 impl ::std::default::Default for Settings {
     fn default() -> Self {
-        Self {
-            username: None,
-        }
+        Self { username: None }
     }
 }
 

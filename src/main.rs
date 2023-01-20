@@ -86,9 +86,7 @@ fn authenticate(cfg: &Settings) {
     let client = PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
         Ok(mut client) => {
-            client
-                .setup_company_and_role()
-                .expect("Failed to query account info");
+            client.setup_company_and_role().expect("Failed to query account info");
             client.save();
         }
         _ => println!("Authentication failed"),
@@ -114,14 +112,9 @@ fn tt_break_start() {
     match result {
         None => sp.stop_with_message("Not clocked in!".into()),
         Some(entry) => match entry.current_break() {
-            Some(br) => sp.stop_with_message(format!(
-                "Already on a break since {}!",
-                br.start_time.format("%R")
-            )),
+            Some(br) => sp.stop_with_message(format!("Already on a break since {}!", br.start_time.format("%R"))),
             None => {
-                let break_type = break_policy
-                    .manual_break_type()
-                    .expect("No manual break type");
+                let break_type = break_policy.manual_break_type().expect("No manual break type");
                 let entry = client.tt_break_start(&entry.id, &break_type.id).unwrap();
                 let br = entry.current_break().unwrap();
                 sp.stop_with_message(format!("Started break at {}!", br.start_time.format("%R")))
@@ -157,10 +150,7 @@ fn tt_clock_in() {
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
     match client.tt_clock_start() {
-        Ok(entry) => sp.stop_with_message(format!(
-            "Clocked in since {}!",
-            entry.start_time.format("%R")
-        )),
+        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", entry.start_time.format("%R"))),
         Err(err) => sp.stop_with_message(format!("Error: {err}!")),
     }
 }
@@ -171,11 +161,9 @@ fn tt_clock_out() {
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
     let entry = client.tt_current_entry().unwrap();
     match entry {
-        Some(entry) => {
-            match client.tt_clock_stop(&entry.id) {
-                Ok(_) => sp.stop_with_message("Clocked out!".into()),
-                Err(err) => sp.stop_with_message(format!("Error: {err}!")),
-            }
+        Some(entry) => match client.tt_clock_stop(&entry.id) {
+            Ok(_) => sp.stop_with_message("Clocked out!".into()),
+            Err(err) => sp.stop_with_message(format!("Error: {err}!")),
         },
         None => sp.stop_with_message("Not clocked in!".into()),
     }
@@ -194,9 +182,7 @@ fn tt_status() {
                 entry.start_time.format("%R"),
                 format_hours(entry.regular_hours)
             )),
-            Some(br) => {
-                sp.stop_with_message(format!("On break since {}!", br.start_time.format("%R")))
-            }
+            Some(br) => sp.stop_with_message(format!("On break since {}!", br.start_time.format("%R"))),
         },
     }
 }
@@ -210,8 +196,6 @@ fn format_hours(hours: f32) -> String {
 fn ask_user_input(prompt: &str) -> String {
     println!("{prompt}");
     let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read input");
+    io::stdin().read_line(&mut input).expect("Failed to read input");
     input.trim().to_owned()
 }
