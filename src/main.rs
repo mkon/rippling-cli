@@ -2,10 +2,11 @@ mod client;
 mod commands;
 mod persistence;
 
-use std::{io};
+use std::io;
 
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use client::{account_info, time_entries, PublicClient, Session};
+use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
 
@@ -14,42 +15,6 @@ use spinners::{Spinner, Spinners};
 struct Cli {
     #[command(subcommand)]
     command: Commands,
-}
-
-#[derive(Debug, Subcommand)]
-enum Commands {
-    /// Configure this client
-    Configure {
-        #[command(subcommand)]
-        command: ConfigureCommands,
-    },
-
-    /// Authenticate against rippling
-    Authenticate,
-
-    /// Clock-in Status
-    Status,
-
-    /// Clock In
-    #[clap(alias = "in")]
-    ClockIn,
-
-    /// Clock Out
-    #[clap(alias = "out")]
-    ClockOut,
-
-    /// Start a break
-    #[clap(alias = "sb", alias = "break")]
-    StartBreak,
-
-    /// Continue after a break
-    #[clap(alias = "eb", alias = "continue")]
-    EndBreak,
-}
-
-#[derive(Debug, Subcommand)]
-enum ConfigureCommands {
-    Username { value: String },
 }
 
 fn main() {
@@ -63,6 +28,7 @@ fn main() {
         Commands::Status => tt_status(),
         Commands::StartBreak => run_break_start(),
         Commands::EndBreak => run_break_end(),
+        Commands::Today { shifts } => run_add_entry(shifts),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
@@ -91,6 +57,12 @@ fn authenticate(cfg: &Settings) {
     }
 }
 
+fn run_add_entry(shifts: &Vec<commands::InputShift>) {
+    wrap_in_spinner(|| commands::add_entry(shifts), |entry| {
+        format!("Added entry from {} to {}", entry.start_time.format("%R"), entry.end_time.unwrap().format("%R"))
+    })
+}
+
 fn run_break_start() {
     wrap_in_spinner(commands::start_break, |br| {
         format!("Started break at {}!", br.start_time.format("%R"))
@@ -115,7 +87,7 @@ where
     wrap_in_spinner_or(cmd, ok, |e| format!("Error: {e}"))
 }
 
-fn wrap_in_spinner_or<T,C,O,E>(cmd: C, ok: O, er: E)
+fn wrap_in_spinner_or<T, C, O, E>(cmd: C, ok: O, er: E)
 where
     C: FnOnce() -> commands::Result<T>,
     O: FnOnce(T) -> String,

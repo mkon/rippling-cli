@@ -1,8 +1,58 @@
+mod manual_entry;
+
+use clap::Subcommand;
+
+pub use manual_entry::{add_entry, InputShift};
+
 use crate::client::{
-    self, break_policy,
+    self,
+    break_policy::{self},
     time_entries::{self, TimeEntryBreak},
     Session,
 };
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Configure this client
+    Configure {
+        #[command(subcommand)]
+        command: ConfigureCommands,
+    },
+
+    /// Authenticate against rippling
+    Authenticate,
+
+    /// Clock-in Status
+    Status,
+
+    /// Clock In
+    #[clap(alias = "in")]
+    ClockIn,
+
+    /// Clock Out
+    #[clap(alias = "out")]
+    ClockOut,
+
+    /// Start a break
+    #[clap(alias = "sb", alias = "break")]
+    StartBreak,
+
+    /// Continue after a break
+    #[clap(alias = "eb", alias = "continue")]
+    EndBreak,
+
+    /// Manually enter entry for today
+    Today {
+        /// Time ranges
+        #[arg(value_parser = manual_entry::parse_input_shifts)]
+        shifts: Vec<manual_entry::InputShift>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ConfigureCommands {
+    Username { value: String },
+}
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -95,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn it_fails_when_not_authenticated() {
+    fn start_break_fails_when_not_authenticated() {
         let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=")
             .with_status(401)
             .with_body(r#"{"details":"Not authenitcated"}"#)
@@ -113,7 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn it_fails_when_not_clocked_in() {
+    fn start_break_fails_when_not_clocked_in() {
         let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=").with_body("[]").create();
 
         let result = start_break();
