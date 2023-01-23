@@ -108,14 +108,14 @@ mod tests {
     #[test]
     fn minimum_break_for() {
         let examples = [
-            (360, 0),
-            (365, 15),
-            (375, 15),
-            (420, 30),
-            (540, 30),
-            (545, 35),
-            (555, 45),
-            (600, 45),
+            (360, 0),  // 6h
+            (365, 15), // 6h 5m
+            (375, 15), // 6h 15m
+            (420, 30), // 8h
+            (540, 30), // 9h
+            (545, 35), // 9h 5m
+            (555, 45), // 9h 15m
+            (600, 45), // 10h
         ];
         for (w, b) in examples.into_iter() {
             assert_eq!(super::minimum_break_for(Duration::minutes(w)), Duration::minutes(b));
