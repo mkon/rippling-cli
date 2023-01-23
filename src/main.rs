@@ -58,9 +58,16 @@ fn authenticate(cfg: &Settings) {
 }
 
 fn run_add_entry(shifts: &Vec<commands::InputShift>) {
-    wrap_in_spinner(|| commands::add_entry(shifts), |entry| {
-        format!("Added entry from {} to {}", entry.start_time.format("%R"), entry.end_time.unwrap().format("%R"))
-    })
+    wrap_in_spinner(
+        || commands::add_entry(shifts),
+        |entry| {
+            format!(
+                "Added entry from {} to {}",
+                entry.start_time.format("%R"),
+                entry.end_time.unwrap().format("%R")
+            )
+        },
+    )
 }
 
 fn run_break_start() {

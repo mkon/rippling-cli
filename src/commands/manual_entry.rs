@@ -4,8 +4,9 @@ use regex::Regex;
 use super::Result;
 
 use crate::client::{
+    self,
     break_policy::{self, BreakPolicy},
-    time_entries::{NewTimeEntry, TimeEntry}, self,
+    time_entries::{NewTimeEntry, TimeEntry},
 };
 
 #[derive(Clone, Debug)]
@@ -106,7 +107,16 @@ mod tests {
 
     #[test]
     fn minimum_break_for() {
-        let examples = [(360, 0), (365, 15), (375, 15), (420, 30), (540, 30), (545, 35), (555, 45), (600, 45)];
+        let examples = [
+            (360, 0),
+            (365, 15),
+            (375, 15),
+            (420, 30),
+            (540, 30),
+            (545, 35),
+            (555, 45),
+            (600, 45),
+        ];
         for (w, b) in examples.into_iter() {
             assert_eq!(super::minimum_break_for(Duration::minutes(w)), Duration::minutes(b));
         }
