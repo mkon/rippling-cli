@@ -1,63 +1,100 @@
-use chrono::{DateTime, Duration, Local};
-use serde::{Deserialize, Deserializer};
+use chrono::{DateTime, Duration, FixedOffset, Local};
+use json_value_merge::Merge;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
 
 use super::session::Session;
 use super::Result;
 
-pub fn current_entry(session: &Session) -> Result<Option<TimeTrackEntry>> {
+pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry> {
+    let mut body = json!(&entry);
+    body.merge(json!({"company":session.company(), "role":session.role()}));
+    let req = session.post("time_tracking/api/time_entries")?.json(&body);
+    super::request_to_result(req, |r| {
+        let entry = r.json::<TimeEntry>()?;
+        Result::Ok(entry)
+    })
+}
+
+pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
     let req = session.get("time_tracking/api/time_entries")?.query(&[("endTime", "")]); // Filter for entries with no end time
     super::request_to_result(req, |r| {
-        let entries = r.json::<Vec<TimeTrackEntry>>()?;
+        let entries = r.json::<Vec<TimeEntry>>()?;
         Result::Ok(entries.into_iter().next())
     })
 }
 
-pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
     let req = session
         .post(&format!("time_tracking/api/time_entries/{id}/start_break"))?
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
-    super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
+    super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
-pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeTrackEntry> {
+pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
     let req = session
         .post(&format!("time_tracking/api/time_entries/{id}/end_break"))?
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}));
-    super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
+    super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
-pub fn start_clock(session: &Session) -> Result<TimeTrackEntry> {
+pub fn start_clock(session: &Session) -> Result<TimeEntry> {
     let req = session
         .post("time_tracking/api/time_entries/start_clock")?
         .json(&json!({"source": "WEB_CLOCK", "role": session.role().unwrap()}));
-    super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
+    super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
-pub fn end_clock(session: &Session, id: &str) -> Result<TimeTrackEntry> {
+pub fn end_clock(session: &Session, id: &str) -> Result<TimeEntry> {
     let req = session
         .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))?
         .json(&json!({"source": "WEB_CLOCK"}));
-    super::request_to_result(req, |r| r.json::<TimeTrackEntry>())
+    super::request_to_result(req, |r| r.json::<TimeEntry>())
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NewTimeEntry {
+    #[serde(rename = "jobShifts")]
+    pub shifts: Vec<NewTimeEntryShift>,
+    pub breaks: Vec<NewTimeEntryBreak>,
+    source: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NewTimeEntryBreak {
+    #[serde(rename = "companyBreakType")]
+    pub break_type_id: String,
+    #[serde(rename = "startTime")]
+    pub start_time: DateTime<FixedOffset>,
+    #[serde(rename = "endTime")]
+    pub end_time: DateTime<FixedOffset>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NewTimeEntryShift {
+    #[serde(rename = "startTime")]
+    pub start_time: DateTime<FixedOffset>,
+    #[serde(rename = "endTime")]
+    pub end_time: DateTime<FixedOffset>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackEntry {
+pub struct TimeEntry {
     pub id: String,
     #[serde(rename = "activePolicy")]
-    pub active_policy: TimeTrackActivePolicy,
+    pub active_policy: TimeEntryActivePolicy,
     #[serde(rename = "startTime")]
     pub start_time: DateTime<Local>,
     #[serde(rename = "endTime")]
     pub end_time: Option<DateTime<Local>>,
-    pub breaks: Vec<TimeTrackEntryBreak>,
+    pub breaks: Vec<TimeEntryBreak>,
     #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
     pub regular_hours: f32,
     // pub timezone: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackActivePolicy {
+pub struct TimeEntryActivePolicy {
     #[serde(rename = "timePolicy")]
     pub time_policy_id: String,
     #[serde(rename = "breakPolicy")]
@@ -65,7 +102,7 @@ pub struct TimeTrackActivePolicy {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackEntryBreak {
+pub struct TimeEntryBreak {
     #[serde(rename = "companyBreakType")]
     pub break_type_id: String,
     pub description: String,
@@ -75,13 +112,38 @@ pub struct TimeTrackEntryBreak {
     pub end_time: Option<DateTime<Local>>,
 }
 
-impl TimeTrackEntry {
-    pub fn current_break(&self) -> Option<&TimeTrackEntryBreak> {
+impl NewTimeEntry {
+    pub fn new() -> Self {
+        Self {
+            shifts: Vec::new(),
+            breaks: Vec::new(),
+            source: "WEB".into(),
+        }
+    }
+
+    pub fn add_shift(&mut self, start_time: DateTime<FixedOffset>, end_time: DateTime<FixedOffset>) {
+        self.shifts.push(NewTimeEntryShift {
+            start_time: start_time,
+            end_time: end_time,
+        });
+    }
+
+    pub fn add_break(&mut self, break_type: String, start_time: DateTime<FixedOffset>, end_time: DateTime<FixedOffset>) {
+        self.breaks.push(NewTimeEntryBreak {
+            break_type_id: break_type,
+            start_time: start_time,
+            end_time: end_time,
+        });
+    }
+}
+
+impl TimeEntry {
+    pub fn current_break(&self) -> Option<&TimeEntryBreak> {
         self.breaks.iter().find(|b| b.end_time.is_none())
     }
 }
 
-impl TimeTrackEntryBreak {
+impl TimeEntryBreak {
     pub fn duration(&self) -> Option<Duration> {
         match self.end_time {
             Some(end) => Some(end - self.start_time),
@@ -100,7 +162,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{TimeZone, Utc};
     use mockito::{mock, Matcher};
 
     use super::*;
@@ -117,6 +179,49 @@ mod tests {
         let mut session = Session::new("access-token".into());
         session.set_company_and_role("some-company-id".into(), "some-role-id".into());
         session
+    }
+
+    #[test]
+    fn it_can_create_entries() {
+        let offset = chrono::FixedOffset::east_opt(3600).unwrap();
+        let mut new_entry = NewTimeEntry::new();
+        new_entry.add_shift(
+            offset.with_ymd_and_hms(2023, 1, 20, 8, 0, 0).unwrap(),
+            offset.with_ymd_and_hms(2023, 1, 20, 17, 0, 0).unwrap(),
+        );
+        new_entry.add_break(
+            "some-break-type".into(),
+            offset.with_ymd_and_hms(2023, 1, 20, 12, 0, 0).unwrap(),
+            offset.with_ymd_and_hms(2023, 1, 20, 12, 45, 0).unwrap(),
+        );
+
+        let m = mock_api("POST", "/time_tracking/api/time_entries", "time_entry")
+            .with_status(201)
+            .match_body(Matcher::Json(json!(
+                {
+                    "jobShifts": [
+                        {
+                            "startTime": "2023-01-20T08:00:00+01:00",
+                            "endTime": "2023-01-20T17:00:00+01:00"
+                        }
+                    ],
+                    "breaks": [
+                        {
+                            "companyBreakType": "some-break-type",
+                            "startTime": "2023-01-20T12:00:00+01:00",
+                            "endTime": "2023-01-20T12:45:00+01:00"
+                        }
+                    ],
+                    "company": "some-company-id",
+                    "role": "some-role-id",
+                    "source": "WEB"
+                }
+            )))
+            .create();
+
+        let entry = create_entry(&session(), &new_entry);
+        assert!(entry.is_ok());
+        m.assert();
     }
 
     #[test]

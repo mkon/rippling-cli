@@ -54,6 +54,10 @@ impl Session {
         self.role = Some(role);
     }
 
+    pub fn company(&self) -> Option<&str> {
+        self.company.as_ref().map(|s| s.as_str())
+    }
+
     pub fn role(&self) -> Option<&str> {
         self.role.as_ref().map(|s| s.as_str())
     }

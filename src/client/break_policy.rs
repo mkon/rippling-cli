@@ -1,24 +1,42 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use super::session::Session;
-use super::Result;
+use super::{Error, Result};
 
-pub fn fetch(session: &Session, id: &str) -> Result<TimeTrackBreakPolicy> {
+pub fn active_policy(session: &Session) -> Result<ActivePolicy> {
+    let req = session.get("time_tracking/api/time_entry_policies/get_active_policy")?;
+    super::request_to_result(req, |r| {
+        let mut map = r.json::<HashMap<String, ActivePolicy>>()?;
+        map.remove(session.role().unwrap()).ok_or(Error::UnexpectedPayload)
+    })
+}
+
+pub fn fetch(session: &Session, id: &str) -> Result<BreakPolicy> {
     let req = session.get(&format!("time_tracking/api/time_entry_break_policies/{id}"))?;
-    super::request_to_result(req, |r| r.json::<TimeTrackBreakPolicy>())
+    super::request_to_result(req, |r| r.json::<BreakPolicy>())
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackBreakPolicy {
+pub struct ActivePolicy {
+    #[serde(rename = "timePolicy")]
+    pub time_policy: String,
+    #[serde(rename = "breakPolicy")]
+    pub break_policy: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct BreakPolicy {
     pub id: String,
     #[serde(rename = "companyBreakTypes")]
-    pub break_types: Vec<TimeTrackBreakType>,
+    pub break_types: Vec<BreakType>,
     #[serde(rename = "eligibleBreakTypes")]
-    pub eligible_break_types: Vec<TimeTrackEligibleBreakType>,
+    pub eligible_break_types: Vec<EligibleBreakType>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackBreakType {
+pub struct BreakType {
     pub id: String,
     #[serde(rename = "isDeleted")]
     pub deleted: bool,
@@ -34,15 +52,15 @@ pub struct TimeTrackBreakType {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct TimeTrackEligibleBreakType {
+pub struct EligibleBreakType {
     #[serde(rename = "allowManual")]
     allow_manual: bool,
     #[serde(rename = "breakType")]
     break_type_id: String,
 }
 
-impl TimeTrackBreakPolicy {
-    pub fn manual_break_type(&self) -> Option<&TimeTrackBreakType> {
+impl BreakPolicy {
+    pub fn manual_break_type(&self) -> Option<&BreakType> {
         let eligible_ids: Vec<&str> = self
             .eligible_break_types
             .iter()

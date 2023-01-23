@@ -45,12 +45,6 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-impl From<url::ParseError> for Error {
-    fn from(value: url::ParseError) -> Self {
-        Error::Wrapping(Box::new(value))
-    }
-}
-
 impl From<reqwest::blocking::Response> for Error {
     fn from(res: reqwest::blocking::Response) -> Self {
         match res.headers().get("Content-Type") {
@@ -69,6 +63,18 @@ impl From<reqwest::blocking::Response> for Error {
     }
 }
 
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Error::Wrapping(Box::new(value))
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Error::Wrapping(Box::new(value))
+    }
+}
+
 fn request_to_result<E, F, T>(req: RequestBuilder, f: F) -> Result<T>
 where
     F: FnOnce(Response) -> std::result::Result<T, E>,
@@ -79,6 +85,7 @@ where
     // dbg!(&res);
     match res.status() {
         reqwest::StatusCode::OK => f(res).map_err(Error::from),
+        reqwest::StatusCode::CREATED => f(res).map_err(Error::from),
         _ => Err(res.into()),
     }
 }
