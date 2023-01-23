@@ -4,6 +4,7 @@ mod persistence;
 
 use std::io;
 
+use chrono::{Duration, Local, NaiveDate};
 use clap::Parser;
 use client::{account_info, time_entries, PublicClient, Session};
 use commands::{Commands, ConfigureCommands};
@@ -28,7 +29,8 @@ fn main() {
         Commands::Status => tt_status(),
         Commands::StartBreak => run_break_start(),
         Commands::EndBreak => run_break_end(),
-        Commands::Today { shifts } => run_add_entry(shifts),
+        Commands::Today { shifts } => run_add_entry(Local::now().date_naive(), shifts),
+        Commands::Yesterday { shifts } => run_add_entry(Local::now().date_naive() - Duration::days(1), shifts),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
@@ -57,9 +59,9 @@ fn authenticate(cfg: &Settings) {
     }
 }
 
-fn run_add_entry(shifts: &Vec<commands::InputShift>) {
+fn run_add_entry(date: NaiveDate, shifts: &Vec<commands::InputShift>) {
     wrap_in_spinner(
-        || commands::add_entry(shifts),
+        || commands::add_entry(date, shifts),
         |entry| {
             format!(
                 "Added entry from {} to {}",

@@ -1,5 +1,6 @@
-use chrono::{DateTime, Duration, FixedOffset, Local, Offset, Timelike};
+use chrono::{DateTime, Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveTime, Offset, TimeZone, Timelike};
 use regex::Regex;
+use std::result::Result as StdResult;
 
 use super::Result;
 
@@ -11,11 +12,11 @@ use crate::client::{
 
 #[derive(Clone, Debug)]
 pub struct InputShift {
-    start_time: DateTime<Local>,
-    end_time: DateTime<Local>,
+    start_time: NaiveTime,
+    end_time: NaiveTime,
 }
 
-pub fn add_entry(shifts: &Vec<InputShift>) -> Result<TimeEntry> {
+pub fn add_entry(date: NaiveDate, shifts: &Vec<InputShift>) -> Result<TimeEntry> {
     let session = super::get_session();
     let policy = break_policy::active_policy(&session)?;
     let break_policy = break_policy::fetch(&session, &policy.break_policy)?;
@@ -23,16 +24,21 @@ pub fn add_entry(shifts: &Vec<InputShift>) -> Result<TimeEntry> {
     let mut entry = NewTimeEntry::new();
 
     for shift in shifts {
-        entry.add_shift(local_to_fixed_datetime(shift.start_time), local_to_fixed_datetime(shift.end_time));
+        entry.add_shift(
+            naive_to_fixed_datetime(date, shift.start_time),
+            naive_to_fixed_datetime(date, shift.end_time),
+        );
     }
     set_minimum_breaks(&mut entry, &break_policy);
     Ok(client::time_entries::create_entry(&session, &entry)?)
 }
 
-fn local_to_fixed_datetime(local: DateTime<Local>) -> DateTime<FixedOffset> {
-    let east = local.offset().fix().local_minus_utc();
+fn naive_to_fixed_datetime(date: NaiveDate, time: NaiveTime) -> DateTime<FixedOffset> {
+    let east = Local::now().offset().fix().local_minus_utc();
     let timezone = FixedOffset::east_opt(east).unwrap();
-    local.with_timezone(&timezone)
+    timezone
+        .with_ymd_and_hms(date.year(), date.month(), date.day(), time.hour(), time.minute(), time.second())
+        .unwrap()
 }
 
 /// Sets the regulatory required minimum break per shift according to German labor law
@@ -69,31 +75,15 @@ fn minimum_break_for(duration: Duration) -> Duration {
     dur
 }
 
-fn midnight() -> DateTime<Local> {
-    Local::now()
-        .with_hour(0)
-        .and_then(|t| t.with_minute(0))
-        .and_then(|t| t.with_second(0))
-        .and_then(|t| t.with_nanosecond(0))
-        .unwrap()
-}
-
-pub fn parse_input_shifts(s: &str) -> std::result::Result<InputShift, String> {
+pub fn parse_input_shifts(s: &str) -> StdResult<InputShift, String> {
     let re = Regex::new(r"^(?P<h1>\d{1,2})(?::(?P<m1>\d{2}))?-(?P<h2>\d{1,2})(?::(?P<m2>\d{2}))?$").unwrap();
     if let Some(m) = re.captures(s) {
-        let today = midnight();
         let parsed: [Option<u32>; 4] =
             [m.name("h1"), m.name("m1"), m.name("h2"), m.name("m2")].map(|m| m.map(|v| v.as_str().parse().unwrap()));
-        let hours = parsed[0].unwrap();
-        let mut start_time = today.clone().with_hour(hours).ok_or(format!("Invalid hours: {hours}"))?;
-        if let Some(v) = parsed[1] {
-            start_time = start_time.with_minute(v).ok_or(format!("Invalid minutes: {v}"))?;
-        }
-        let hours = parsed[2].unwrap();
-        let mut end_time = today.with_hour(hours).ok_or(format!("Invalid hours: {hours}"))?;
-        if let Some(v) = parsed[3] {
-            end_time = end_time.with_minute(v).ok_or(format!("Invalid minutes: {v}"))?;
-        }
+        let start_time: NaiveTime =
+            NaiveTime::from_hms_opt(parsed[0].unwrap(), parsed[1].unwrap_or(0), 0).ok_or(format!("Invalid time format"))?;
+        let end_time: NaiveTime =
+            NaiveTime::from_hms_opt(parsed[2].unwrap(), parsed[3].unwrap_or(0), 0).ok_or(format!("Invalid time format"))?;
         let shift = InputShift { start_time, end_time };
         Ok(shift)
     } else {
