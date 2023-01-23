@@ -35,6 +35,6 @@ See all available commands with `rippling-cli help`.
 
 ### Today
 
-Example: `rippling-cli today 8-17:30`
+Example: `rippling-cli today 8:30-17`
 
-Will add an entry from **8:00** to **17:30** with the German statutory breaks in the middle, in this case a 30min break from **12:30** to **13:00**. The statutory break is 30min when working over 6hrs, and 45min when working over 9hrs. The minimum valid break is 15min, so when adding an entry like `8-14:05` it will use a 15min break and not 5min.
+Will add an entry from **8:30** to **17:00** with the German statutory breaks in the middle, in this case a 30min break from **12:30** to **13:00**. The statutory break is 30min when working over 6hrs, and 45min when working over 9hrs. The minimum valid break is 15min, so when adding an entry like `8-14:05` it will use a 15min break and not 5min.
