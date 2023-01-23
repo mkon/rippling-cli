@@ -56,9 +56,13 @@ fn set_minimum_breaks(entry: &mut NewTimeEntry, break_policy: &BreakPolicy) {
 fn minimum_break_for(duration: Duration) -> Duration {
     let mut dur = Duration::minutes(0);
     if duration > Duration::hours(6) {
-        dur = (duration - Duration::hours(6)).min(Duration::minutes(30));
+        // after 6hrs up to 30min
+        dur = (duration - Duration::hours(6))
+            .min(Duration::minutes(30))
+            .max(Duration::minutes(15));
     }
     if duration > Duration::hours(9) {
+        // after 9hrs up to 30min + 15min
         dur = dur + (duration - Duration::hours(9)).min(Duration::minutes(15));
     }
     dur
@@ -102,7 +106,7 @@ mod tests {
 
     #[test]
     fn minimum_break_for() {
-        let examples = [(360, 0), (375, 15), (420, 30), (540, 30), (545, 35), (555, 45), (600, 45)];
+        let examples = [(360, 0), (365, 15), (375, 15), (420, 30), (540, 30), (545, 35), (555, 45), (600, 45)];
         for (w, b) in examples.into_iter() {
             assert_eq!(super::minimum_break_for(Duration::minutes(w)), Duration::minutes(b));
         }
