@@ -4,8 +4,6 @@ mod public;
 mod session;
 pub mod time_entries;
 
-use std::collections::HashMap;
-
 pub use public::Client as PublicClient;
 use reqwest::blocking::RequestBuilder;
 use reqwest::blocking::Response;
@@ -17,7 +15,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     ApiError {
         status: u16,
-        data: HashMap<String, serde_json::Value>,
+        description: Option<String>,
+        json: Option<serde_json::Value>,
     },
     Wrapping(Box<dyn std::error::Error>),
     UnexpectedPayload,
@@ -26,9 +25,13 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        dbg!(self);
+        // dbg!(self);
         match self {
-            Self::ApiError { status, data } => match data.get("detail") {
+            Self::ApiError {
+                status,
+                description,
+                json: _,
+            } => match description {
                 Some(string) => write!(f, "{string}"),
                 None => write!(f, "Unexpected response status {status}"),
             },
@@ -50,9 +53,24 @@ impl From<reqwest::blocking::Response> for Error {
         match res.headers().get("Content-Type") {
             Some(val) => {
                 if val.to_str().unwrap().contains("application/json") {
-                    Error::ApiError {
-                        status: res.status().as_u16(),
-                        data: res.json::<HashMap<String, serde_json::Value>>().unwrap(),
+                    let status = res.status().as_u16();
+                    let data = res.json::<serde_json::Value>().unwrap();
+                    match &data {
+                        serde_json::Value::Array(list) if list.first().unwrap().is_string() => Error::ApiError {
+                            status: status,
+                            description: list.first().map(|v| v.as_str().unwrap().to_owned()),
+                            json: Some(data),
+                        },
+                        serde_json::Value::Object(obj) if obj.contains_key("detail") => Error::ApiError {
+                            status: status,
+                            description: obj["detail"].as_str().map(|v| v.to_owned()),
+                            json: Some(data),
+                        },
+                        _ => Error::ApiError {
+                            status: status,
+                            description: None,
+                            json: Some(data),
+                        },
                     }
                 } else {
                     Error::UnhandledStatus(res.status().as_u16())
@@ -87,5 +105,51 @@ where
         reqwest::StatusCode::OK => f(res).map_err(Error::from),
         reqwest::StatusCode::CREATED => f(res).map_err(Error::from),
         _ => Err(res.into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mockito::{mock, Matcher};
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn it_can_parse_array_errors() {
+        let _m = mock("GET", Matcher::Any)
+            .with_status(400)
+            .with_header("content-type", "application/json")
+            .with_body(json!(["Oops!"]).to_string())
+            .create();
+
+        let res = reqwest::blocking::get(mockito::server_url()).unwrap();
+        let error: Error = res.into();
+        if let Error::ApiError { status, description, json: _ } = error {
+            assert_eq!(status, 400);
+            assert_eq!(description, Some("Oops!".into()));
+        } else {
+            dbg!(error);
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn it_can_parse_detail_errors() {
+        let _m = mock("GET", Matcher::Any)
+            .with_status(404)
+            .with_header("content-type", "application/json")
+            .with_body(json!({"detail": "Not found"}).to_string())
+            .create();
+
+        let res = reqwest::blocking::get(mockito::server_url()).unwrap();
+        let error: Error = res.into();
+        if let Error::ApiError { status, description, json: _ } = error {
+            assert_eq!(status, 404);
+            assert_eq!(description, Some("Not found".into()));
+        } else {
+            dbg!(error);
+            assert!(false);
+        }
     }
 }

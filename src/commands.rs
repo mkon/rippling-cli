@@ -47,6 +47,13 @@ pub enum Commands {
         #[arg(value_parser = manual_entry::parse_input_shifts)]
         shifts: Vec<manual_entry::InputShift>,
     },
+
+    /// Manually enter entry for today
+    Yesterday {
+        /// Time ranges
+        #[arg(value_parser = manual_entry::parse_input_shifts)]
+        shifts: Vec<manual_entry::InputShift>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -155,7 +162,7 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             Error::ApiError(e) => match e {
-                client::Error::ApiError { status, data: _ } => assert_eq!(status, 401),
+                client::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
                 _ => assert!(false, "Wrong error"),
             },
             _ => assert!(false, "Wrong error"),
