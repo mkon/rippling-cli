@@ -116,7 +116,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_can_parse_array_erros() {
+    fn it_can_parse_array_errors() {
         let _m = mock("GET", Matcher::Any)
             .with_status(400)
             .with_header("content-type", "application/json")
@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn it_can_parse_detail_erros() {
+    fn it_can_parse_detail_errors() {
         let _m = mock("GET", Matcher::Any)
             .with_status(404)
             .with_header("content-type", "application/json")
