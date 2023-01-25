@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version = "0.4.23", features = ["serde"] }
 clap = { version = "4.0.32", features = ["derive"] }
 confy = "0.5.1"
 json_value_merge = "1.1.2"
@@ -15,6 +14,7 @@ reqwest = { version = "0.11.13", features = ["blocking","json"] }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
 spinners = "4.1.0"
+time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
 url = "2.3.1"
 
 [dev-dependencies]

@@ -162,7 +162,11 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             Error::ApiError(e) => match e {
-                client::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
+                client::Error::ApiError {
+                    status,
+                    description: _,
+                    json: _,
+                } => assert_eq!(status, 401),
                 _ => assert!(false, "Wrong error"),
             },
             _ => assert!(false, "Wrong error"),

@@ -1,7 +1,9 @@
-use chrono::{DateTime, Duration, FixedOffset, Local};
 use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
+use time::{Duration, OffsetDateTime};
+
+use time::serde::rfc3339;
 
 use super::session::Session;
 use super::Result;
@@ -64,18 +66,18 @@ pub struct NewTimeEntry {
 pub struct NewTimeEntryBreak {
     #[serde(rename = "companyBreakType")]
     pub break_type_id: String,
-    #[serde(rename = "startTime")]
-    pub start_time: DateTime<FixedOffset>,
-    #[serde(rename = "endTime")]
-    pub end_time: DateTime<FixedOffset>,
+    #[serde(rename = "startTime", with = "rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(rename = "endTime", with = "rfc3339")]
+    pub end_time: OffsetDateTime,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct NewTimeEntryShift {
-    #[serde(rename = "startTime")]
-    pub start_time: DateTime<FixedOffset>,
-    #[serde(rename = "endTime")]
-    pub end_time: DateTime<FixedOffset>,
+    #[serde(rename = "startTime", with = "rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(rename = "endTime", with = "rfc3339")]
+    pub end_time: OffsetDateTime,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -83,10 +85,10 @@ pub struct TimeEntry {
     pub id: String,
     #[serde(rename = "activePolicy")]
     pub active_policy: TimeEntryActivePolicy,
-    #[serde(rename = "startTime")]
-    pub start_time: DateTime<Local>,
-    #[serde(rename = "endTime")]
-    pub end_time: Option<DateTime<Local>>,
+    #[serde(rename = "startTime", with = "rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(rename = "endTime", with = "rfc3339::option")]
+    pub end_time: Option<OffsetDateTime>,
     pub breaks: Vec<TimeEntryBreak>,
     #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
     pub regular_hours: f32,
@@ -106,10 +108,10 @@ pub struct TimeEntryBreak {
     #[serde(rename = "companyBreakType")]
     pub break_type_id: String,
     pub description: String,
-    #[serde(rename = "startTime")]
-    pub start_time: DateTime<Local>,
-    #[serde(rename = "endTime")]
-    pub end_time: Option<DateTime<Local>>,
+    #[serde(rename = "startTime", with = "rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(rename = "endTime", with = "rfc3339::option")]
+    pub end_time: Option<OffsetDateTime>,
 }
 
 impl NewTimeEntry {
@@ -121,14 +123,14 @@ impl NewTimeEntry {
         }
     }
 
-    pub fn add_shift(&mut self, start_time: DateTime<FixedOffset>, end_time: DateTime<FixedOffset>) {
+    pub fn add_shift(&mut self, start_time: OffsetDateTime, end_time: OffsetDateTime) {
         self.shifts.push(NewTimeEntryShift {
             start_time: start_time,
             end_time: end_time,
         });
     }
 
-    pub fn add_break(&mut self, break_type: String, start_time: DateTime<FixedOffset>, end_time: DateTime<FixedOffset>) {
+    pub fn add_break(&mut self, break_type: String, start_time: OffsetDateTime, end_time: OffsetDateTime) {
         self.breaks.push(NewTimeEntryBreak {
             break_type_id: break_type,
             start_time: start_time,
@@ -162,8 +164,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeZone, Utc};
     use mockito::{mock, Matcher};
+    use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
 
     use super::*;
 
@@ -183,16 +185,12 @@ mod tests {
 
     #[test]
     fn it_can_create_entries() {
-        let offset = chrono::FixedOffset::east_opt(3600).unwrap();
         let mut new_entry = NewTimeEntry::new();
-        new_entry.add_shift(
-            offset.with_ymd_and_hms(2023, 1, 20, 8, 0, 0).unwrap(),
-            offset.with_ymd_and_hms(2023, 1, 20, 17, 0, 0).unwrap(),
-        );
+        new_entry.add_shift(datetime!(2023-01-20 08:00 +1), datetime!(2023-01-20 17:00 +1));
         new_entry.add_break(
             "some-break-type".into(),
-            offset.with_ymd_and_hms(2023, 1, 20, 12, 0, 0).unwrap(),
-            offset.with_ymd_and_hms(2023, 1, 20, 12, 45, 0).unwrap(),
+            datetime!(2023-01-20 12:00 +1),
+            datetime!(2023-01-20 12:45 +1),
         );
 
         let m = mock_api("POST", "/time_tracking/api/time_entries", "time_entry")
@@ -230,7 +228,10 @@ mod tests {
 
         let entry = current_entry(&session()).unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
-        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
+        assert_eq!(
+            entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
+            "2023-01-19T08:22:25Z"
+        );
         assert_eq!(entry.regular_hours, 0.92583334);
         assert!(entry.current_break().is_none());
     }
@@ -244,7 +245,10 @@ mod tests {
             .create();
 
         let entry = start_clock(&session()).unwrap();
-        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
+        assert_eq!(
+            entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
+            "2023-01-19T08:22:25Z"
+        );
     }
 
     #[test]
@@ -256,7 +260,10 @@ mod tests {
             .create();
 
         let entry = end_clock(&session(), &"id").unwrap();
-        assert_eq!(entry.start_time.with_timezone(&Utc).to_rfc3339(), "2023-01-19T08:22:25+00:00");
+        assert_eq!(
+            entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
+            "2023-01-19T08:22:25Z"
+        );
     }
 
     #[test]
