@@ -125,7 +125,12 @@ mod tests {
 
         let res = reqwest::blocking::get(mockito::server_url()).unwrap();
         let error: Error = res.into();
-        if let Error::ApiError { status, description, json: _ } = error {
+        if let Error::ApiError {
+            status,
+            description,
+            json: _,
+        } = error
+        {
             assert_eq!(status, 400);
             assert_eq!(description, Some("Oops!".into()));
         } else {
@@ -144,7 +149,12 @@ mod tests {
 
         let res = reqwest::blocking::get(mockito::server_url()).unwrap();
         let error: Error = res.into();
-        if let Error::ApiError { status, description, json: _ } = error {
+        if let Error::ApiError {
+            status,
+            description,
+            json: _,
+        } = error
+        {
             assert_eq!(status, 404);
             assert_eq!(description, Some("Not found".into()));
         } else {

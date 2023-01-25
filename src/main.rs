@@ -4,12 +4,12 @@ mod persistence;
 
 use std::io;
 
-use chrono::{Duration, Local, NaiveDate};
 use clap::Parser;
 use client::{account_info, time_entries, PublicClient, Session};
 use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
+use time::{Date, OffsetDateTime};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -29,8 +29,8 @@ fn main() {
         Commands::Status => tt_status(),
         Commands::StartBreak => run_break_start(),
         Commands::EndBreak => run_break_end(),
-        Commands::Today { shifts } => run_add_entry(Local::now().date_naive(), shifts),
-        Commands::Yesterday { shifts } => run_add_entry(Local::now().date_naive() - Duration::days(1), shifts),
+        Commands::Today { shifts } => run_add_entry(today(), shifts),
+        Commands::Yesterday { shifts } => run_add_entry(Date::previous_day(today()).unwrap(), shifts),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
@@ -38,7 +38,11 @@ fn main() {
 
             cfg.store();
         }
-    }
+    };
+}
+
+fn today() -> Date {
+    OffsetDateTime::now_local().unwrap().date()
 }
 
 fn authenticate(cfg: &Settings) {
@@ -59,31 +63,23 @@ fn authenticate(cfg: &Settings) {
     }
 }
 
-fn run_add_entry(date: NaiveDate, shifts: &Vec<commands::InputShift>) {
+fn run_add_entry(date: Date, shifts: &Vec<commands::InputShift>) {
     wrap_in_spinner(
         || commands::add_entry(date, shifts),
-        |entry| {
-            format!(
-                "Added entry from {} to {}",
-                entry.start_time.format("%R"),
-                entry.end_time.unwrap().format("%R")
-            )
-        },
+        |entry| format!("Added entry from {} to {}", entry.start_time.time(), entry.end_time.unwrap().time()),
     )
 }
 
 fn run_break_start() {
-    wrap_in_spinner(commands::start_break, |br| {
-        format!("Started break at {}!", br.start_time.format("%R"))
-    })
+    wrap_in_spinner(commands::start_break, |br| format!("Started break at {}!", br.start_time.time()))
 }
 
 fn run_break_end() {
     wrap_in_spinner(commands::end_break, |br| {
         format!(
             "Stopped break at {}, after {} hours!",
-            br.end_time.unwrap().format("%R"),
-            format_hours(br.duration().unwrap().num_minutes() as f32 / 60.0)
+            br.end_time.unwrap().time(),
+            format_hours(br.duration().unwrap().whole_minutes() as f32 / 60.0)
         )
     })
 }
@@ -114,7 +110,7 @@ fn tt_clock_in() {
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
     match time_entries::start_clock(&session) {
-        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", entry.start_time.format("%R"))),
+        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", entry.start_time.time())),
         Err(err) => sp.stop_with_message(format!("Error: {err}!")),
     }
 }
@@ -143,10 +139,10 @@ fn tt_status() {
         Some(entry) => match entry.current_break() {
             None => sp.stop_with_message(format!(
                 "Clocked in since {}, for {} regular hours!",
-                entry.start_time.format("%R"),
+                entry.start_time.time(),
                 format_hours(entry.regular_hours)
             )),
-            Some(br) => sp.stop_with_message(format!("On break since {}!", br.start_time.format("%R"))),
+            Some(br) => sp.stop_with_message(format!("On break since {}!", br.start_time.time())),
         },
     }
 }
