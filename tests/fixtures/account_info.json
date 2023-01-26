@@ -1,9 +1,9 @@
 [
   {
-    "id": "some-role-id",
+    "id": "my-role-id",
     "role": {
       "_id": {
-        "$oid": "some-role-id"
+        "$oid": "my-role-id"
       },
       "company": {
         "$oid": "some-company-id"

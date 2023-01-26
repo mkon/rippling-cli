@@ -9,7 +9,9 @@ use client::{account_info, time_entries, PublicClient, Session};
 use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
-use time::{Date, OffsetDateTime};
+use time::{macros::format_description, Date, OffsetDateTime, UtcOffset};
+
+const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -66,19 +68,27 @@ fn authenticate(cfg: &Settings) {
 fn run_add_entry(date: Date, shifts: &Vec<commands::InputShift>) {
     wrap_in_spinner(
         || commands::add_entry(date, shifts),
-        |entry| format!("Added entry from {} to {}", entry.start_time.time(), entry.end_time.unwrap().time()),
+        |entry| {
+            format!(
+                "Added entry from {} to {}",
+                local_time_format(entry.start_time),
+                local_time_format(entry.end_time.unwrap())
+            )
+        },
     )
 }
 
 fn run_break_start() {
-    wrap_in_spinner(commands::start_break, |br| format!("Started break at {}!", br.start_time.time()))
+    wrap_in_spinner(commands::start_break, |br| {
+        format!("Started break at {}!", local_time_format(br.start_time))
+    })
 }
 
 fn run_break_end() {
     wrap_in_spinner(commands::end_break, |br| {
         format!(
             "Stopped break at {}, after {} hours!",
-            br.end_time.unwrap().time(),
+            local_time_format(br.end_time.unwrap()),
             format_hours(br.duration().unwrap().whole_minutes() as f32 / 60.0)
         )
     })
@@ -110,7 +120,7 @@ fn tt_clock_in() {
 
     let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
     match time_entries::start_clock(&session) {
-        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", entry.start_time.time())),
+        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", local_time_format(entry.start_time))),
         Err(err) => sp.stop_with_message(format!("Error: {err}!")),
     }
 }
@@ -139,10 +149,10 @@ fn tt_status() {
         Some(entry) => match entry.current_break() {
             None => sp.stop_with_message(format!(
                 "Clocked in since {}, for {} regular hours!",
-                entry.start_time.time(),
+                local_time_format(entry.start_time),
                 format_hours(entry.regular_hours)
             )),
-            Some(br) => sp.stop_with_message(format!("On break since {}!", br.start_time.time())),
+            Some(br) => sp.stop_with_message(format!("On break since {}!", local_time_format(br.start_time))),
         },
     }
 }
@@ -151,6 +161,19 @@ fn format_hours(hours: f32) -> String {
     let h = hours.floor();
     let m = (hours.fract() * 60.0).floor();
     format!("{:1}:{:02}", h, m)
+}
+
+fn local_time_format(datetime: OffsetDateTime) -> String {
+    datetime.to_offset(local_offset()).time().format(&FORMAT_R).unwrap()
+}
+
+fn local_offset() -> UtcOffset {
+    UtcOffset::current_local_offset().unwrap_or_else(|_| {
+        let time_zone = tzdb::local_tz()
+            .unwrap()
+            .find_local_time_type(OffsetDateTime::now_utc().unix_timestamp());
+        UtcOffset::from_whole_seconds(time_zone.unwrap().ut_offset()).unwrap()
+    })
 }
 
 fn ask_user_input(prompt: &str) -> String {

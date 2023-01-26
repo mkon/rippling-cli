@@ -24,6 +24,8 @@ pub struct ActivePolicy {
     pub time_policy: String,
     #[serde(rename = "breakPolicy")]
     pub break_policy: String,
+    #[serde(rename = "roleOverrides")]
+    pub role_overrides: RoleOverrides,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -59,6 +61,19 @@ pub struct EligibleBreakType {
     break_type_id: String,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct RoleOverrides {
+    #[serde(rename = "roleProperties")]
+    pub role_properties: RoleProperties,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RoleProperties {
+    pub role: String,
+    #[serde(rename = "defaultTimezone")]
+    pub default_timezone: String,
+}
+
 impl BreakPolicy {
     pub fn manual_break_type(&self) -> Option<&BreakType> {
         let eligible_ids: Vec<&str> = self
@@ -87,7 +102,7 @@ mod tests {
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
+        session.set_company_and_role("some-company-id".into(), "my-role-id".into());
         session
     }
 
@@ -99,5 +114,15 @@ mod tests {
         let mybreak = policy.manual_break_type().unwrap();
         assert_eq!(mybreak.id, "break-id-1");
         assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
+    }
+
+    #[test]
+    fn it_can_fetch_active_policy() {
+        let _m = mock_api("GET", "/time_tracking/api/time_entry_policies/get_active_policy", "active_policy").create();
+
+        let policy = active_policy(&session()).unwrap();
+        assert_eq!(policy.break_policy, "some-break-policy-id");
+        assert_eq!(policy.time_policy, "some-policy-id");
+        assert_eq!(policy.role_overrides.role_properties.default_timezone, "Europe/Berlin");
     }
 }

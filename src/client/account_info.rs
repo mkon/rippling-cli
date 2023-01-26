@@ -59,6 +59,6 @@ mod tests {
 
         let info = fetch(&session()).unwrap();
         assert_eq!(info.role.company.id, "some-company-id");
-        assert_eq!(info.id, "some-role-id");
+        assert_eq!(info.id, "my-role-id");
     }
 }
