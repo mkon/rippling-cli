@@ -88,17 +88,9 @@ impl BreakPolicy {
 
 #[cfg(test)]
 mod tests {
-    use mockito::mock;
+    use utilities::mocking;
 
     use super::*;
-
-    fn mock_api(method: &str, path: &str, fixture: &str) -> mockito::Mock {
-        mock(method, path)
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body_from_file(format!("tests/fixtures/{fixture}.json"))
-            .match_header("authorization", "Bearer access-token")
-    }
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
@@ -108,7 +100,7 @@ mod tests {
 
     #[test]
     fn it_can_fetch_a_break_policy() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entry_break_policies/policy-id", "break_policy").create();
+        let _m = mocking::mock_break_policy("policy-id");
 
         let policy = fetch(&session(), "policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
@@ -118,7 +110,7 @@ mod tests {
 
     #[test]
     fn it_can_fetch_active_policy() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entry_policies/get_active_policy", "active_policy").create();
+        let _m = mocking::mock_active_policy();
 
         let policy = active_policy(&session()).unwrap();
         assert_eq!(policy.break_policy, "some-break-policy-id");

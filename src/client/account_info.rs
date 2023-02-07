@@ -35,17 +35,8 @@ pub struct TimeTrackPolicy {
 
 #[cfg(test)]
 mod tests {
-    use mockito::mock;
-
     use super::*;
-
-    fn mock_api(method: &str, path: &str, fixture: &str) -> mockito::Mock {
-        mock(method, path)
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body_from_file(format!("tests/fixtures/{fixture}.json"))
-            .match_header("authorization", "Bearer access-token")
-    }
+    use utilities::mocking;
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
@@ -55,7 +46,7 @@ mod tests {
 
     #[test]
     fn it_can_fetch_account_info() {
-        let _m = mock_api("GET", "/auth_ext/get_account_info", "account_info").create();
+        let _m = mocking::with_fixture("GET", "/auth_ext/get_account_info", "account_info").create();
 
         let info = fetch(&session()).unwrap();
         assert_eq!(info.role.company.id, "some-company-id");

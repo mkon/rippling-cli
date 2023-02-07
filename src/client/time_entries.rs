@@ -11,6 +11,7 @@ use super::Result;
 pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry> {
     let mut body = json!(&entry);
     body.merge(json!({"company":session.company(), "role":session.role()}));
+    dbg!(&body);
     let req = session.post("time_tracking/api/time_entries")?.json(&body);
     super::request_to_result(req, |r| {
         let entry = r.json::<TimeEntry>()?;
@@ -164,18 +165,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use mockito::{mock, Matcher};
-    use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
-
     use super::*;
-
-    fn mock_api(method: &str, path: &str, fixture: &str) -> mockito::Mock {
-        mock(method, path)
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body_from_file(format!("tests/fixtures/{fixture}.json"))
-            .match_header("authorization", "Bearer access-token")
-    }
+    use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
+    use utilities::mocking;
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
@@ -193,9 +185,9 @@ mod tests {
             datetime!(2023-01-20 12:45 +1),
         );
 
-        let m = mock_api("POST", "/time_tracking/api/time_entries", "time_entry")
+        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
             .with_status(201)
-            .match_body(Matcher::Json(json!(
+            .match_body(mocking::Matcher::Json(json!(
                 {
                     "jobShifts": [
                         {
@@ -224,7 +216,7 @@ mod tests {
 
     #[test]
     fn it_can_fetch_current_entry() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
+        let _m = mocking::with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
 
         let entry = current_entry(&session()).unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
@@ -238,8 +230,8 @@ mod tests {
 
     #[test]
     fn it_can_start_the_clock() {
-        let _m = mock_api("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
+        let _m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
+            .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();
@@ -253,8 +245,8 @@ mod tests {
 
     #[test]
     fn it_can_stop_the_clock() {
-        let _m = mock_api("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK"})))
+        let _m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
+            .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK"})))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();
@@ -268,8 +260,10 @@ mod tests {
 
     #[test]
     fn it_can_take_a_break() {
-        let m = mock_api("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
+            .match_body(mocking::Matcher::Json(
+                json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
+            ))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();
@@ -280,8 +274,10 @@ mod tests {
 
     #[test]
     fn it_can_stop_a_break() {
-        let m = mock_api("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
-            .match_body(Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
+            .match_body(mocking::Matcher::Json(
+                json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
+            ))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();

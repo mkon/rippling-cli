@@ -962,7 +962,6 @@ dependencies = [
  "clap",
  "confy",
  "json_value_merge",
- "mockito",
  "regex",
  "reqwest",
  "serde",
@@ -971,6 +970,7 @@ dependencies = [
  "time",
  "tzdb",
  "url",
+ "utilities",
 ]
 
 [[package]]
@@ -1379,6 +1379,13 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+]
+
+[[package]]
+name = "utilities"
+version = "0.1.0"
+dependencies = [
+ "mockito",
 ]
 
 [[package]]
