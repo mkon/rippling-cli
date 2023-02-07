@@ -1,4 +1,4 @@
-pub use mockito::{server_url, mock, Mock, Matcher};
+pub use mockito::{mock, server_url, Matcher, Mock};
 
 pub fn rippling(method: &str, path: &str) -> Mock {
     mock(method, path)
@@ -8,8 +8,7 @@ pub fn rippling(method: &str, path: &str) -> Mock {
 }
 
 pub fn with_fixture(method: &str, path: &str, fixture: &str) -> Mock {
-    rippling(method, path)
-        .with_body_from_file(format!("tests/fixtures/{fixture}.json"))
+    rippling(method, path).with_body_from_file(format!("tests/fixtures/{fixture}.json"))
 }
 
 pub fn mock_active_policy() -> Mock {

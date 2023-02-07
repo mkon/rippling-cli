@@ -168,7 +168,9 @@ mod tests {
 
     #[test]
     fn start_break_fails_when_not_clocked_in() {
-        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=").with_body("[]").create();
+        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
+            .with_body("[]")
+            .create();
 
         let result = start_break();
         assert!(result.is_err());

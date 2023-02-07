@@ -165,9 +165,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
     use utilities::mocking;
-    use super::*;
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
@@ -261,7 +261,9 @@ mod tests {
     #[test]
     fn it_can_take_a_break() {
         let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
-            .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+            .match_body(mocking::Matcher::Json(
+                json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
+            ))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();
@@ -273,7 +275,9 @@ mod tests {
     #[test]
     fn it_can_stop_a_break() {
         let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
-            .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK", "break_type": "break-type-id"})))
+            .match_body(mocking::Matcher::Json(
+                json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
+            ))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();

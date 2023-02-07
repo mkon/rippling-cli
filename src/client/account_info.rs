@@ -35,8 +35,8 @@ pub struct TimeTrackPolicy {
 
 #[cfg(test)]
 mod tests {
-    use utilities::mocking;
     use super::*;
+    use utilities::mocking;
 
     fn session() -> Session {
         let mut session = Session::new("access-token".into());
