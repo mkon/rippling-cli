@@ -5,7 +5,7 @@ mod persistence;
 use std::io;
 
 use clap::Parser;
-use client::{account_info, time_entries, PublicClient, Session};
+use client::{account_info, PublicClient};
 use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
@@ -26,9 +26,9 @@ fn main() {
 
     match &cli.command {
         Commands::Authenticate => authenticate(&cfg),
-        Commands::ClockIn => tt_clock_in(),
-        Commands::ClockOut => tt_clock_out(),
-        Commands::Status => tt_status(),
+        Commands::ClockIn => run_clock_in(),
+        Commands::ClockOut => run_clock_out(),
+        Commands::Status => run_status(),
         Commands::StartBreak => run_break_start(),
         Commands::EndBreak => run_break_end(),
         Commands::Today { shifts } => run_add_entry(today(), shifts),
@@ -94,6 +94,23 @@ fn run_break_end() {
     })
 }
 
+fn run_clock_in() {
+    wrap_in_spinner(commands::clock_in, |entry| {
+        format!("Clocked in since {}!", local_time_format(entry.start_time))
+    })
+}
+
+fn run_clock_out() {
+    wrap_in_spinner(commands::clock_out, |_entry| String::from("Clocked out!"))
+}
+
+fn run_status() {
+    wrap_in_spinner(commands::status, |entry| match entry {
+        Some(entry) => format!("Clocked in since {}!", local_time_format(entry.start_time)),
+        None => String::from("Not clocked in!"),
+    })
+}
+
 fn wrap_in_spinner<T, C, O>(cmd: C, ok: O)
 where
     C: FnOnce() -> commands::Result<T>,
@@ -108,52 +125,10 @@ where
     O: FnOnce(T) -> String,
     E: FnOnce(commands::Error) -> String,
 {
-    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
+    let mut sp = Spinner::new(Spinners::Dots9, String::from("Connecting with rippling"));
     match cmd() {
         Ok(t) => sp.stop_with_message(ok(t)),
         Err(e) => sp.stop_with_message(er(e)),
-    }
-}
-
-fn tt_clock_in() {
-    let session = Session::load();
-
-    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    match time_entries::start_clock(&session) {
-        Ok(entry) => sp.stop_with_message(format!("Clocked in since {}!", local_time_format(entry.start_time))),
-        Err(err) => sp.stop_with_message(format!("Error: {err}!")),
-    }
-}
-
-fn tt_clock_out() {
-    let session = Session::load();
-
-    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let entry = time_entries::current_entry(&session).unwrap();
-    match entry {
-        Some(entry) => match time_entries::end_clock(&session, &entry.id) {
-            Ok(_) => sp.stop_with_message("Clocked out!".into()),
-            Err(err) => sp.stop_with_message(format!("Error: {err}!")),
-        },
-        None => sp.stop_with_message("Not clocked in!".into()),
-    }
-}
-
-fn tt_status() {
-    let session = Session::load();
-
-    let mut sp = Spinner::new(Spinners::Dots9, "Connecting with rippling".into());
-    let entry = time_entries::current_entry(&session).unwrap();
-    match entry {
-        None => sp.stop_with_message("Not clocked in!".into()),
-        Some(entry) => match entry.current_break() {
-            None => sp.stop_with_message(format!(
-                "Clocked in since {}, for {} regular hours!",
-                local_time_format(entry.start_time),
-                format_hours(entry.regular_hours)
-            )),
-            Some(br) => sp.stop_with_message(format!("On break since {}!", local_time_format(br.start_time))),
-        },
     }
 }
 
