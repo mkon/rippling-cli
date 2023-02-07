@@ -97,7 +97,7 @@ impl Session {
         #[cfg(not(test))]
         let url = "https://app.rippling.com/api/";
         #[cfg(test)]
-        let url = &mockito::server_url();
+        let url = &utilities::mocking::server_url();
         Ok(Url::parse(url)?.join(path)?)
     }
 }

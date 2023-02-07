@@ -65,7 +65,7 @@ fn authenticate(cfg: &Settings) {
     }
 }
 
-fn run_add_entry(date: Date, shifts: &Vec<commands::InputShift>) {
+fn run_add_entry(date: Date, shifts: &Vec<commands::TimeRange>) {
     wrap_in_spinner(
         || commands::add_entry(date, shifts),
         |entry| {

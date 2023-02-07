@@ -2,7 +2,7 @@ mod manual_entry;
 
 use clap::Subcommand;
 
-pub use manual_entry::{add_entry, InputShift};
+pub use manual_entry::{add_entry, TimeRange};
 
 use crate::client::{
     self,
@@ -45,14 +45,14 @@ pub enum Commands {
     Today {
         /// Time ranges
         #[arg(value_parser = manual_entry::parse_input_shifts)]
-        shifts: Vec<manual_entry::InputShift>,
+        shifts: Vec<manual_entry::TimeRange>,
     },
 
     /// Manually enter entry for today
     Yesterday {
         /// Time ranges
         #[arg(value_parser = manual_entry::parse_input_shifts)]
-        shifts: Vec<manual_entry::InputShift>,
+        shifts: Vec<manual_entry::TimeRange>,
     },
 }
 
@@ -132,7 +132,7 @@ fn get_session() -> Session {
     #[cfg(test)]
     let session = {
         let mut session = Session::new("access-token".into());
-        session.set_company_and_role("company-id".into(), "role-id".into());
+        session.set_company_and_role("company-id".into(), "my-role-id".into());
         session
     };
     session
@@ -140,20 +140,13 @@ fn get_session() -> Session {
 
 #[cfg(test)]
 mod tests {
-    use mockito::mock;
+    use utilities::mocking;
 
     use super::*;
 
-    fn mock_api(method: &str, path: &str) -> mockito::Mock {
-        mock(method, path)
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .match_header("authorization", "Bearer access-token")
-    }
-
     #[test]
     fn start_break_fails_when_not_authenticated() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=")
+        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
             .with_status(401)
             .with_body(r#"{"details":"Not authenitcated"}"#)
             .create();
@@ -175,7 +168,7 @@ mod tests {
 
     #[test]
     fn start_break_fails_when_not_clocked_in() {
-        let _m = mock_api("GET", "/time_tracking/api/time_entries?endTime=").with_body("[]").create();
+        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=").with_body("[]").create();
 
         let result = start_break();
         assert!(result.is_err());

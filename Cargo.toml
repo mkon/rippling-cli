@@ -19,4 +19,4 @@ tzdb = "0.5.3"
 url = "2.3.1"
 
 [dev-dependencies]
-mockito = "0.31.1"
+utilities = { path = "utilities" }

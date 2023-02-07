@@ -1,59 +1,73 @@
 use regex::Regex;
 use std::result::Result as StdResult;
-use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset};
+use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
 use super::Result;
 
-use crate::client::{
-    self,
-    break_policy::{self, BreakPolicy},
-    time_entries::{NewTimeEntry, TimeEntry},
+use crate::{
+    client::{
+        self,
+        break_policy::{self},
+        time_entries::{NewTimeEntry, TimeEntry},
+    },
+    local_offset,
 };
 
 #[derive(Clone, Debug)]
-pub struct InputShift {
+pub struct TimeRange {
     start_time: Time,
     end_time: Time,
 }
 
-pub fn add_entry(date: Date, shifts: &Vec<InputShift>) -> Result<TimeEntry> {
+pub fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
     let session = super::get_session();
     let policy = break_policy::active_policy(&session)?;
     let break_policy = break_policy::fetch(&session, &policy.break_policy)?;
 
+    // List of times where either work started or stopped
+    let mut events: Vec<Time> = Vec::new();
+    for range in ranges {
+        events.push(range.start_time);
+        events.push(range.end_time);
+    }
+    events = setup_minimum_breaks(&events);
+    let mut events: Vec<OffsetDateTime> = events.into_iter().map(|time| naive_to_fixed_datetime(date, time)).collect();
+
     let mut entry = NewTimeEntry::new();
 
-    for shift in shifts {
-        entry.add_shift(
-            naive_to_fixed_datetime(date, shift.start_time),
-            naive_to_fixed_datetime(date, shift.end_time),
-        );
+    let start_time = events.remove(0);
+    let end_time = events.pop().unwrap();
+    entry.add_shift(start_time, end_time);
+
+    let btype = break_policy.manual_break_type().unwrap();
+    for pair in events.chunks(2) {
+        entry.add_break(btype.id.to_owned(), pair[0], pair[1]);
     }
-    set_minimum_breaks(&mut entry, &break_policy);
+
     Ok(client::time_entries::create_entry(&session, &entry)?)
 }
 
 fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {
     let datetime: PrimitiveDateTime = PrimitiveDateTime::new(date, time);
-    datetime.assume_offset(UtcOffset::current_local_offset().unwrap())
+    datetime.assume_offset(local_offset())
 }
 
 /// Sets the regulatory required minimum break per shift according to German labor law
-fn set_minimum_breaks(entry: &mut NewTimeEntry, break_policy: &BreakPolicy) {
-    let mut breaks: Vec<(OffsetDateTime, OffsetDateTime)> = Vec::new();
-    let btype = break_policy.manual_break_type().unwrap();
-    for shift in entry.shifts.iter() {
-        let duration = shift.end_time - shift.start_time;
+fn setup_minimum_breaks(input: &Vec<Time>) -> Vec<Time> {
+    assert!(input.len() % 2 == 0);
+    let mut out: Vec<Time> = Vec::new();
+    for pair in input.chunks_exact(2) {
+        let duration = pair[1] - pair[0];
         let break_duration = minimum_break_for(duration);
-        if break_duration.whole_minutes() >= 0 {
-            let break_start = shift.start_time + duration / 2 - break_duration / 2;
+        if break_duration.whole_minutes() > 0 {
+            let break_start = pair[0] + duration / 2 - break_duration / 2;
             let break_end = break_start + break_duration;
-            breaks.push((break_start, break_end))
+            out.append(&mut vec![pair[0], break_start, break_end, pair[1]]);
+        } else {
+            out.append(&mut pair.to_vec());
         }
     }
-    for (start_time, end_time) in breaks {
-        entry.add_break(btype.id.to_owned(), start_time, end_time)
-    }
+    out
 }
 
 /// Calculate minimum break duration according to German labor law
@@ -72,14 +86,14 @@ fn minimum_break_for(duration: Duration) -> Duration {
     dur
 }
 
-pub fn parse_input_shifts(s: &str) -> StdResult<InputShift, String> {
+pub fn parse_input_shifts(s: &str) -> StdResult<TimeRange, String> {
     let re = Regex::new(r"^(?P<h1>\d{1,2})(?::(?P<m1>\d{2}))?-(?P<h2>\d{1,2})(?::(?P<m2>\d{2}))?$").unwrap();
     if let Some(m) = re.captures(s) {
         let parsed: [Option<u8>; 4] =
             [m.name("h1"), m.name("m1"), m.name("h2"), m.name("m2")].map(|m| m.map(|v| v.as_str().parse().unwrap()));
         let start_time: Time = Time::from_hms(parsed[0].unwrap(), parsed[1].unwrap_or(0), 0).unwrap();
         let end_time: Time = Time::from_hms(parsed[2].unwrap(), parsed[3].unwrap_or(0), 0).unwrap();
-        let shift = InputShift { start_time, end_time };
+        let shift = TimeRange { start_time, end_time };
         Ok(shift)
     } else {
         Err("Shifts must be a range, for example 8:30-17:15".into())
@@ -88,7 +102,55 @@ pub fn parse_input_shifts(s: &str) -> StdResult<InputShift, String> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+    use time::macros::{date, time};
     use time::Duration;
+    use utilities::mocking;
+
+    use super::{add_entry, TimeRange};
+
+    #[test]
+    fn it_works() {
+        let ranges: Vec<TimeRange> = vec![
+            TimeRange {
+                start_time: time!(8:30),
+                end_time: time!(14:00),
+            },
+            TimeRange {
+                start_time: time!(15:30),
+                end_time: time!(17:00),
+            },
+        ];
+
+        let _m1 = mocking::mock_active_policy();
+        let _m2 = mocking::mock_break_policy("some-break-policy-id");
+        let _m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
+            .with_status(201)
+            .match_body(mocking::Matcher::Json(json!(
+                {
+                    "jobShifts": [
+                        {
+                            "startTime": "2023-02-07T08:30:00+01:00",
+                            "endTime": "2023-02-07T17:00:00+01:00"
+                        }
+                    ],
+                    "breaks": [
+                        {
+                            "companyBreakType": "break-id-1",
+                            "startTime": "2023-02-07T14:00:00+01:00",
+                            "endTime": "2023-02-07T15:30:00+01:00"
+                        }
+                    ],
+                    "company": "company-id",
+                    "role": "my-role-id",
+                    "source": "WEB"
+                }
+            )))
+            .create();
+
+        let res = add_entry(date!(2023 - 02 - 07), &ranges);
+        assert!(res.is_ok());
+    }
 
     #[test]
     fn minimum_break_for() {

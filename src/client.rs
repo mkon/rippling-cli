@@ -98,9 +98,7 @@ where
     F: FnOnce(Response) -> std::result::Result<T, E>,
     Error: From<E>,
 {
-    // dbg!(&req);
     let res = req.send()?;
-    // dbg!(&res);
     match res.status() {
         reqwest::StatusCode::OK => f(res).map_err(Error::from),
         reqwest::StatusCode::CREATED => f(res).map_err(Error::from),
@@ -110,20 +108,20 @@ where
 
 #[cfg(test)]
 mod tests {
-    use mockito::{mock, Matcher};
     use serde_json::json;
+    use utilities::mocking;
 
     use super::*;
 
     #[test]
     fn it_can_parse_array_errors() {
-        let _m = mock("GET", Matcher::Any)
+        let _m = mocking::mock("GET", mocking::Matcher::Any)
             .with_status(400)
             .with_header("content-type", "application/json")
             .with_body(json!(["Oops!"]).to_string())
             .create();
 
-        let res = reqwest::blocking::get(mockito::server_url()).unwrap();
+        let res = reqwest::blocking::get(mocking::server_url()).unwrap();
         let error: Error = res.into();
         if let Error::ApiError {
             status,
@@ -141,13 +139,13 @@ mod tests {
 
     #[test]
     fn it_can_parse_detail_errors() {
-        let _m = mock("GET", Matcher::Any)
+        let _m = mocking::mock("GET", mocking::Matcher::Any)
             .with_status(404)
             .with_header("content-type", "application/json")
             .with_body(json!({"detail": "Not found"}).to_string())
             .create();
 
-        let res = reqwest::blocking::get(mockito::server_url()).unwrap();
+        let res = reqwest::blocking::get(mocking::server_url()).unwrap();
         let error: Error = res.into();
         if let Error::ApiError {
             status,
