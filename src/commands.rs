@@ -38,18 +38,13 @@ pub enum Commands {
     #[clap(alias = "eb", alias = "continue")]
     EndBreak,
 
-    /// Manually enter entry for today
-    Today {
-        /// Time ranges
+    /// Manually add entry for a day
+    Manual {
+        /// Defaults to 0 (today)
+        #[arg(short, long)]
+        days_ago: Option<u8>,
         #[arg(value_parser = manual_entry::parse_input_shifts)]
-        shifts: Vec<manual_entry::TimeRange>,
-    },
-
-    /// Manually enter entry for today
-    Yesterday {
-        /// Time ranges
-        #[arg(value_parser = manual_entry::parse_input_shifts)]
-        shifts: Vec<manual_entry::TimeRange>,
+        ranges: Vec<manual_entry::TimeRange>,
     },
 }
 
