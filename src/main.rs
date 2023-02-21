@@ -9,7 +9,7 @@ use client::{account_info, PublicClient};
 use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
-use time::{macros::format_description, Date, OffsetDateTime, UtcOffset, Duration};
+use time::{macros::format_description, Date, Duration, OffsetDateTime, UtcOffset};
 
 const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
@@ -37,11 +37,11 @@ fn main() {
             }
 
             cfg.store();
-        },
+        }
         Commands::Manual { days_ago, ranges } => {
             let date = today().checked_sub(Duration::days(days_ago.unwrap_or(0) as i64)).unwrap();
             run_add_entry(date, ranges)
-        },
+        }
     };
 }
 
