@@ -1,10 +1,10 @@
 mod live;
-mod manual_entry;
+pub mod manual_entry;
+pub mod mfa;
 
 use clap::Subcommand;
 
 pub use live::{clock_in, clock_out, end_break, start_break, status};
-pub use manual_entry::{add_entry, TimeRange};
 
 use crate::client::{self, time_entries::TimeEntryBreak, Session};
 
@@ -39,12 +39,12 @@ pub enum Commands {
     EndBreak,
 
     /// Manually add entry for a day
-    Manual {
-        /// Defaults to 0 (today)
-        #[arg(short, long)]
-        days_ago: Option<u8>,
-        #[arg(value_parser = manual_entry::parse_input_shifts)]
-        ranges: Vec<manual_entry::TimeRange>,
+    Manual(manual_entry::Command),
+
+    /// Request MFA
+    Mfa {
+        #[command(subcommand)]
+        command: mfa::Commands,
     },
 }
 

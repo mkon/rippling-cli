@@ -1,3 +1,4 @@
+use clap::{arg, Parser};
 use regex::Regex;
 use std::result::Result as StdResult;
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
@@ -19,7 +20,33 @@ pub struct TimeRange {
     end_time: Time,
 }
 
-pub fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
+/// Manually add entry for a day
+#[derive(Debug, Parser)]
+pub struct Command {
+    /// Defaults to 0 (today)
+    #[arg(short, long)]
+    pub days_ago: Option<u8>,
+    #[arg(value_parser = parse_input_shifts)]
+    pub ranges: Vec<TimeRange>,
+}
+
+pub fn execute(cmd: &Command) {
+    let date = crate::today()
+        .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
+        .unwrap();
+    crate::wrap_in_spinner(
+        || add_entry(date, &cmd.ranges),
+        |entry| {
+            format!(
+                "Added entry from {} to {}",
+                crate::local_time_format(entry.start_time),
+                crate::local_time_format(entry.end_time.unwrap())
+            )
+        },
+    )
+}
+
+fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
     let session = super::get_session();
     let policy = break_policy::active_policy(&session)?;
     let break_policy = break_policy::fetch(&session, &policy.break_policy)?;
