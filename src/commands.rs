@@ -1,12 +1,19 @@
-mod live;
+pub mod live;
 pub mod manual_entry;
 pub mod mfa;
 
+use std::io;
+
 use clap::Subcommand;
+use spinners::{Spinner, Spinners};
+use time::{macros::format_description, Date, OffsetDateTime, UtcOffset};
 
-pub use live::{clock_in, clock_out, end_break, start_break, status};
+use crate::{
+    client::{self, time_entries::TimeEntryBreak, Session},
+    persistence::Settings,
+};
 
-use crate::client::{self, time_entries::TimeEntryBreak, Session};
+const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
@@ -84,6 +91,53 @@ impl From<client::Error> for Error {
     }
 }
 
+pub fn execute(command: &Commands) {
+    let mut cfg = Settings::load();
+
+    match command {
+        Commands::Authenticate => authenticate(&cfg),
+        Commands::ClockIn => live::clock_in(),
+        Commands::ClockOut => live::clock_out(),
+        Commands::Status => live::status(),
+        Commands::StartBreak => live::start_break(),
+        Commands::EndBreak => live::end_break(),
+        Commands::Configure { command } => {
+            match command {
+                ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
+            }
+
+            cfg.store();
+        }
+        Commands::Manual(cmd) => manual_entry::execute(cmd),
+        Commands::Mfa { command } => mfa::execute(command),
+    };
+}
+
+pub fn authenticate(cfg: &Settings) {
+    let username = match &cfg.username {
+        None => ask_user_input("Enter your user name"),
+        Some(value) => value.clone(),
+    };
+    let password = ask_user_input("Enter your password");
+
+    let client = client::PublicClient::initialize_from_remote().unwrap();
+    match client.authenticate(&username, &password) {
+        Ok(mut session) => {
+            let info = client::account_info::fetch(&session).expect("Failed to query account info");
+            session.set_company_and_role(info.role.company.id, info.id);
+            session.save();
+        }
+        _ => println!("Authentication failed"),
+    }
+}
+
+fn ask_user_input(prompt: &str) -> String {
+    println!("> {prompt}");
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read input");
+    input.trim().to_owned()
+}
+
 fn get_session() -> Session {
     #[cfg(not(test))]
     let session = Session::load();
@@ -96,45 +150,47 @@ fn get_session() -> Session {
     session
 }
 
-#[cfg(test)]
-mod tests {
-    use utilities::mocking;
+fn today() -> Date {
+    OffsetDateTime::now_local().unwrap().date()
+}
 
-    use super::*;
+fn wrap_in_spinner<T, E, Fn, Ok>(f: Fn, ok: Ok)
+where
+    Fn: FnOnce() -> std::result::Result<T, E>,
+    Ok: FnOnce(T) -> String,
+    E: std::fmt::Display,
+{
+    wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
+}
 
-    #[test]
-    fn start_break_fails_when_not_authenticated() {
-        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
-            .with_status(401)
-            .with_body(r#"{"details":"Not authenitcated"}"#)
-            .create();
-
-        let result = start_break();
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            Error::ApiError(e) => match e {
-                client::Error::ApiError {
-                    status,
-                    description: _,
-                    json: _,
-                } => assert_eq!(status, 401),
-                _ => assert!(false, "Wrong error"),
-            },
-            _ => assert!(false, "Wrong error"),
-        };
+fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)
+where
+    Fn: FnOnce() -> std::result::Result<T, E>,
+    Ok: FnOnce(T) -> String,
+    Er: FnOnce(E) -> String,
+{
+    let mut sp = Spinner::new(Spinners::Dots9, String::from("Connecting with rippling"));
+    match f() {
+        Ok(t) => sp.stop_with_message(ok(t)),
+        Err(e) => sp.stop_with_message(er(e)),
     }
+}
 
-    #[test]
-    fn start_break_fails_when_not_clocked_in() {
-        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
-            .with_body("[]")
-            .create();
+fn format_hours(hours: f32) -> String {
+    let h = hours.floor();
+    let m = (hours.fract() * 60.0).floor();
+    format!("{:1}:{:02}", h, m)
+}
 
-        let result = start_break();
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            Error::NotClockedIn => (),
-            _ => assert!(false, "Wrong error"),
-        };
-    }
+fn local_time_format(datetime: OffsetDateTime) -> String {
+    datetime.to_offset(local_offset()).time().format(&FORMAT_R).unwrap()
+}
+
+fn local_offset() -> UtcOffset {
+    UtcOffset::current_local_offset().unwrap_or_else(|_| {
+        let time_zone = tzdb::local_tz()
+            .unwrap()
+            .find_local_time_type(OffsetDateTime::now_utc().unix_timestamp());
+        UtcOffset::from_whole_seconds(time_zone.unwrap().ut_offset()).unwrap()
+    })
 }

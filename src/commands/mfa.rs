@@ -11,7 +11,7 @@ pub enum Commands {
 }
 
 pub fn execute(cmd: &Commands) {
-    crate::wrap_in_spinner(
+    super::wrap_in_spinner(
         || match cmd {
             Commands::Request { auth_option } => request(&auth_option),
             Commands::Submit { auth_option, code } => submit(&auth_option, &code),
