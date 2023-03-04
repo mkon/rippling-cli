@@ -1,5 +1,6 @@
 pub mod account_info;
 pub mod break_policy;
+pub mod mfa;
 mod public;
 mod session;
 pub mod time_entries;

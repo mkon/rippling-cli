@@ -9,7 +9,7 @@ use client::{account_info, PublicClient};
 use commands::{Commands, ConfigureCommands};
 use persistence::Settings;
 use spinners::{Spinner, Spinners};
-use time::{macros::format_description, Date, Duration, OffsetDateTime, UtcOffset};
+use time::{macros::format_description, Date, OffsetDateTime, UtcOffset};
 
 const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
@@ -38,10 +38,8 @@ fn main() {
 
             cfg.store();
         }
-        Commands::Manual { days_ago, ranges } => {
-            let date = today().checked_sub(Duration::days(days_ago.unwrap_or(0) as i64)).unwrap();
-            run_add_entry(date, ranges)
-        }
+        Commands::Manual(cmd) => commands::manual_entry::execute(cmd),
+        Commands::Mfa { command } => commands::mfa::execute(command),
     };
 }
 
@@ -65,19 +63,6 @@ fn authenticate(cfg: &Settings) {
         }
         _ => println!("Authentication failed"),
     }
-}
-
-fn run_add_entry(date: Date, shifts: &Vec<commands::TimeRange>) {
-    wrap_in_spinner(
-        || commands::add_entry(date, shifts),
-        |entry| {
-            format!(
-                "Added entry from {} to {}",
-                local_time_format(entry.start_time),
-                local_time_format(entry.end_time.unwrap())
-            )
-        },
-    )
 }
 
 fn run_break_start() {
