@@ -5,13 +5,10 @@ use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
 use super::Result;
 
-use crate::{
-    client::{
-        self,
-        break_policy::{self},
-        time_entries::{NewTimeEntry, TimeEntry},
-    },
-    local_offset,
+use crate::client::{
+    self,
+    break_policy::{self},
+    time_entries::{NewTimeEntry, TimeEntry},
 };
 
 #[derive(Clone, Debug)]
@@ -31,16 +28,16 @@ pub struct Command {
 }
 
 pub fn execute(cmd: &Command) {
-    let date = crate::today()
+    let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
-    crate::wrap_in_spinner(
+    super::wrap_in_spinner(
         || add_entry(date, &cmd.ranges),
         |entry| {
             format!(
                 "Added entry from {} to {}",
-                crate::local_time_format(entry.start_time),
-                crate::local_time_format(entry.end_time.unwrap())
+                super::local_time_format(entry.start_time),
+                super::local_time_format(entry.end_time.unwrap())
             )
         },
     )
@@ -76,7 +73,7 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
 
 fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {
     let datetime: PrimitiveDateTime = PrimitiveDateTime::new(date, time);
-    datetime.assume_offset(local_offset())
+    datetime.assume_offset(super::local_offset())
 }
 
 /// Sets the regulatory required minimum break per shift according to German labor law
