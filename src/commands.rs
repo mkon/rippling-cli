@@ -1,6 +1,7 @@
 pub mod live;
 pub mod manual_entry;
 pub mod mfa;
+pub mod pto;
 
 use std::io;
 
@@ -53,6 +54,9 @@ pub enum Commands {
         #[command(subcommand)]
         command: mfa::Commands,
     },
+
+    /// Should i work?
+    Holiday,
 }
 
 #[derive(Debug, Subcommand)]
@@ -110,10 +114,11 @@ pub fn execute(command: &Commands) {
         }
         Commands::Manual(cmd) => manual_entry::execute(cmd),
         Commands::Mfa { command } => mfa::execute(command),
+        Commands::Holiday => pto::check(),
     };
 }
 
-pub fn authenticate(cfg: &Settings) {
+fn authenticate(cfg: &Settings) {
     let username = match &cfg.username {
         None => ask_user_input("Enter your user name"),
         Some(value) => value.clone(),
@@ -151,7 +156,9 @@ fn get_session() -> Session {
 }
 
 fn today() -> Date {
-    OffsetDateTime::now_local().unwrap().date()
+    // This seems to crash sometimes ...
+    // OffsetDateTime::now_local().unwrap().date()
+    OffsetDateTime::now_utc().to_offset(local_offset()).date()
 }
 
 fn wrap_in_spinner<T, E, Fn, Ok>(f: Fn, ok: Ok)
