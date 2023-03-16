@@ -14,6 +14,8 @@ use crate::{
     persistence::Settings,
 };
 
+use self::pto::CheckOutcome;
+
 const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
 #[derive(Debug, Subcommand)]
@@ -54,9 +56,6 @@ pub enum Commands {
         #[command(subcommand)]
         command: mfa::Commands,
     },
-
-    /// Should i work?
-    Holiday,
 }
 
 #[derive(Debug, Subcommand)]
@@ -74,6 +73,7 @@ pub enum Error {
     NotOnBreak,
     NoManualBreakType,
     UnexpectedResponse,
+    NoWorkingDay(CheckOutcome),
 }
 
 impl std::fmt::Display for Error {
@@ -85,6 +85,12 @@ impl std::fmt::Display for Error {
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
             Self::UnexpectedResponse => write!(f, "Unexpected response received"),
+            Self::NoWorkingDay(r) => match r {
+                CheckOutcome::Leave => write!(f, "You are on PTO"),
+                CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),
+                CheckOutcome::Weekend(d) => write!(f, "It is a weekend ({})", d),
+                _ => panic!("Unhandled enum match")
+            },
         }
     }
 }
@@ -114,7 +120,6 @@ pub fn execute(command: &Commands) {
         }
         Commands::Manual(cmd) => manual_entry::execute(cmd),
         Commands::Mfa { command } => mfa::execute(command),
-        Commands::Holiday => pto::check(),
     };
 }
 

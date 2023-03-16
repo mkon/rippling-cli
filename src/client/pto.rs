@@ -11,6 +11,11 @@ pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
     super::request_to_result(req, |r| r.json::<Vec<HolidaysOfYear>>())
 }
 
+pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
+    let req = session.get("pto/api/leave_requests/")?.query(&[("role", session.role())]);
+    super::request_to_result(req, |r| r.json::<Vec<LeaveRequest>>())
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct HolidaysOfYear {
     pub year: u16,
@@ -28,6 +33,19 @@ pub struct Holiday {
     pub end_date: Date,
     #[serde(rename = "shouldCountTowardHoursWorkedForOvertime")]
     pub count_as_overtime: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct LeaveRequest {
+    #[serde(rename = "isDeleted")]
+    pub is_deleted: Option<bool>,
+    #[serde(rename = "startDate")]
+    pub start_date: Date,
+    #[serde(rename = "endDate")]
+    pub end_date: Date,
+    pub status: String,
+    #[serde(rename = "leaveTypeName")]
+    pub leave_type_name: String,
 }
 
 #[cfg(test)]
