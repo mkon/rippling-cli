@@ -6,9 +6,9 @@ mod public;
 mod session;
 pub mod time_entries;
 
+use attohttpc::RequestBuilder;
+use attohttpc::Response;
 pub use public::Client as PublicClient;
-use reqwest::blocking::RequestBuilder;
-use reqwest::blocking::Response;
 pub use session::Session;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -43,14 +43,14 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
+impl From<attohttpc::Error> for Error {
+    fn from(value: attohttpc::Error) -> Self {
         Error::Wrapping(format!("{}", value))
     }
 }
 
-impl From<reqwest::blocking::Response> for Error {
-    fn from(res: reqwest::blocking::Response) -> Self {
+impl From<Response> for Error {
+    fn from(res: Response) -> Self {
         match res.headers().get("Content-Type") {
             Some(val) => {
                 if val.to_str().unwrap().contains("application/json") {
@@ -94,16 +94,20 @@ impl From<url::ParseError> for Error {
     }
 }
 
-fn request_to_result<E, F, T>(req: RequestBuilder, f: F) -> Result<T>
+fn request_to_result<E, F, T, B>(req: RequestBuilder<B>, f: F) -> Result<T>
 where
     F: FnOnce(Response) -> std::result::Result<T, E>,
     Error: From<E>,
+    B: attohttpc::body::Body,
 {
     let res = req.send()?;
     match res.status() {
-        reqwest::StatusCode::OK => f(res).map_err(Error::from),
-        reqwest::StatusCode::CREATED => f(res).map_err(Error::from),
-        _ => Err(res.into()),
+        attohttpc::StatusCode::OK => f(res).map_err(Error::from),
+        attohttpc::StatusCode::CREATED => f(res).map_err(Error::from),
+        _ => {
+            dbg!("Not a ok response");
+            Err(res.into())
+        }
     }
 }
 
@@ -122,8 +126,8 @@ mod tests {
             .with_body(json!(["Oops!"]).to_string())
             .create();
 
-        let res = reqwest::blocking::get(mocking::server_url()).unwrap();
-        let error: Error = res.into();
+        let req = attohttpc::get(mocking::server_url());
+        let error: Error = req.send().unwrap().into();
         if let Error::ApiError {
             status,
             description,
@@ -146,8 +150,8 @@ mod tests {
             .with_body(json!({"detail": "Not found"}).to_string())
             .create();
 
-        let res = reqwest::blocking::get(mocking::server_url()).unwrap();
-        let error: Error = res.into();
+        let req = attohttpc::get(mocking::server_url());
+        let error: Error = req.send().unwrap().into();
         if let Error::ApiError {
             status,
             description,

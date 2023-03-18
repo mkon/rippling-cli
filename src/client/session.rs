@@ -1,11 +1,5 @@
-use reqwest::{
-    blocking::RequestBuilder,
-    header::{HeaderMap, HeaderValue},
-    Method,
-};
 use url::Url;
 
-use super::Result;
 use crate::persistence;
 
 #[derive(Clone, Debug)]
@@ -13,7 +7,6 @@ pub struct Session {
     access_token: String,
     pub company: Option<String>,
     pub role: Option<String>,
-    connection: reqwest::blocking::Client,
 }
 
 impl Session {
@@ -22,7 +15,6 @@ impl Session {
             access_token: token,
             company: None,
             role: None,
-            connection: reqwest::blocking::Client::new(),
         }
     }
 
@@ -32,7 +24,6 @@ impl Session {
             access_token: state.access_token.expect("State missing access token"),
             company: state.company_id,
             role: state.role_id,
-            connection: reqwest::blocking::Client::new(),
         }
     }
 
@@ -62,42 +53,30 @@ impl Session {
         self.role.as_ref().map(|s| s.as_str())
     }
 
-    pub fn get(&self, path: &str) -> Result<RequestBuilder> {
-        self.request(Method::GET, path)
+    pub fn get(&self, path: &str) -> attohttpc::RequestBuilder {
+        self.request(attohttpc::Method::GET, path)
     }
 
-    pub fn post(&self, path: &str) -> Result<RequestBuilder> {
-        self.request(Method::POST, path)
+    pub fn post(&self, path: &str) -> attohttpc::RequestBuilder {
+        self.request(attohttpc::Method::POST, path)
     }
 
-    pub fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
-        let url = self.url_for(&path)?;
-        let rb = self
-            .connection
-            .request(method, url)
-            .bearer_auth(&self.access_token)
-            .headers(self.request_headers());
-        Ok(rb)
-    }
-
-    fn request_headers(&self) -> HeaderMap {
-        let mut map = HeaderMap::new();
-
+    pub fn request(&self, method: attohttpc::Method, path: &str) -> attohttpc::RequestBuilder {
+        let mut builder = attohttpc::RequestBuilder::new(method, self.url_for(path)).bearer_auth(&self.access_token);
         if let Some(value) = &self.company {
-            map.append("company", HeaderValue::from_str(value).unwrap());
+            builder = builder.header("company", value);
         }
         if let Some(value) = &self.role {
-            map.append("role", HeaderValue::from_str(value).unwrap());
+            builder = builder.header("role", value);
         }
-
-        map
+        builder
     }
 
-    fn url_for(&self, path: &str) -> Result<Url> {
+    fn url_for(&self, path: &str) -> Url {
         #[cfg(not(test))]
         let url = "https://app.rippling.com/api/";
         #[cfg(test)]
         let url = &utilities::mocking::server_url();
-        Ok(Url::parse(url)?.join(path)?)
+        Url::parse(url).unwrap().join(path).unwrap()
     }
 }
