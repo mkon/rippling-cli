@@ -13,7 +13,9 @@ pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
 }
 
 pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
-    let req = session.get("pto/api/leave_requests/").param("role", session.role().unwrap());
+    let req = session
+        .get("pto/api/leave_requests/")
+        .param("role", session.role().unwrap());
     super::request_to_result(req, |r| r.json::<Vec<LeaveRequest>>())
 }
 
@@ -79,6 +81,9 @@ mod tests {
         let y2023 = data.into_iter().find(|y| y.year == 2023).unwrap();
         assert_eq!(y2023.holidays.len(), 13);
         let days: Vec<Date> = y2023.holidays.into_iter().take(3).map(|h| h.start_date).collect();
-        assert_eq!(days, vec![date![2023 - 01 - 01], date![2023 - 01 - 06], date![2023 - 04 - 07]]);
+        assert_eq!(
+            days,
+            vec![date![2023 - 01 - 01], date![2023 - 01 - 06], date![2023 - 04 - 07]]
+        );
     }
 }

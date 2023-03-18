@@ -116,26 +116,17 @@ pub struct TimeEntryBreak {
 
 impl NewTimeEntry {
     pub fn new() -> Self {
-        Self {
-            shifts: Vec::new(),
-            breaks: Vec::new(),
-            source: "WEB".into(),
-        }
+        Self { shifts: Vec::new(), breaks: Vec::new(), source: "WEB".into() }
     }
 
     pub fn add_shift(&mut self, start_time: OffsetDateTime, end_time: OffsetDateTime) {
-        self.shifts.push(NewTimeEntryShift {
-            start_time: start_time,
-            end_time: end_time,
-        });
+        self.shifts
+            .push(NewTimeEntryShift { start_time: start_time, end_time: end_time });
     }
 
     pub fn add_break(&mut self, break_type: String, start_time: OffsetDateTime, end_time: OffsetDateTime) {
-        self.breaks.push(NewTimeEntryBreak {
-            break_type_id: break_type,
-            start_time: start_time,
-            end_time: end_time,
-        });
+        self.breaks
+            .push(NewTimeEntryBreak { break_type_id: break_type, start_time: start_time, end_time: end_time });
     }
 }
 
@@ -230,7 +221,9 @@ mod tests {
     #[test]
     fn it_can_start_the_clock() {
         let _m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
-            .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK", "role": "some-role-id"})))
+            .match_body(mocking::Matcher::Json(
+                json!({"source": "WEB_CLOCK", "role": "some-role-id"}),
+            ))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();

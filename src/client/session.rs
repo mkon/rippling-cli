@@ -11,11 +11,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(token: String) -> Self {
-        Self {
-            access_token: token,
-            company: None,
-            role: None,
-        }
+        Self { access_token: token, company: None, role: None }
     }
 
     pub fn load() -> Self {

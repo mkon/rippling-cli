@@ -82,7 +82,9 @@ impl BreakPolicy {
             .filter(|&bt| bt.allow_manual)
             .map(|bt| bt.break_type_id.as_ref())
             .collect();
-        self.break_types.iter().find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
+        self.break_types
+            .iter()
+            .find(|bt| !bt.deleted && eligible_ids.contains(&&bt.id[..]))
     }
 }
 

@@ -73,7 +73,10 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEnt
         events.push(range.end_time);
     }
     events = setup_minimum_breaks(&events);
-    let mut events: Vec<OffsetDateTime> = events.into_iter().map(|time| naive_to_fixed_datetime(date, time)).collect();
+    let mut events: Vec<OffsetDateTime> = events
+        .into_iter()
+        .map(|time| naive_to_fixed_datetime(date, time))
+        .collect();
 
     let mut entry = NewTimeEntry::new();
 
@@ -155,14 +158,8 @@ mod tests {
     #[test]
     fn it_works() {
         let ranges: Vec<TimeRange> = vec![
-            TimeRange {
-                start_time: time!(8:30),
-                end_time: time!(14:00),
-            },
-            TimeRange {
-                start_time: time!(15:30),
-                end_time: time!(17:00),
-            },
+            TimeRange { start_time: time!(8:30), end_time: time!(14:00) },
+            TimeRange { start_time: time!(15:30), end_time: time!(17:00) },
         ];
 
         let _m1 = mocking::mock_active_policy();

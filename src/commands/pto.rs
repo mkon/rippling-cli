@@ -34,7 +34,10 @@ fn check_holiday(date: Date) -> Result<Option<Holiday>> {
     let cal = crate::client::pto::holiday_calendar(&session)?;
     std::thread::sleep(std::time::Duration::from_millis(2000));
     match cal.into_iter().find(|hy| hy.year as i32 == date.year()) {
-        Some(year) => Ok(year.holidays.into_iter().find(|h| h.start_date <= date && h.end_date >= date)),
+        Some(year) => Ok(year
+            .holidays
+            .into_iter()
+            .find(|h| h.start_date <= date && h.end_date >= date)),
         None => Ok(None),
     }
 }

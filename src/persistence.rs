@@ -42,11 +42,7 @@ pub struct State {
 
 impl ::std::default::Default for State {
     fn default() -> Self {
-        Self {
-            access_token: None,
-            company_id: None,
-            role_id: None,
-        }
+        Self { access_token: None, company_id: None, role_id: None }
     }
 }
 

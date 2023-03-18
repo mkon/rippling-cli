@@ -13,10 +13,7 @@ pub struct Client {
 
 impl Client {
     pub fn new(id: &str, secret: &str) -> Self {
-        Self {
-            id: id.to_owned(),
-            secret: secret.to_owned(),
-        }
+        Self { id: id.to_owned(), secret: secret.to_owned() }
     }
 
     /// Returns a new public client with id and secret configured remotely
@@ -36,7 +33,11 @@ impl Client {
 
     /// Returns a new authenticated client
     pub fn authenticate(&self, username: &str, password: &str) -> Result<super::Session> {
-        let params = [("grant_type", "password"), ("username", username), ("password", password)];
+        let params = [
+            ("grant_type", "password"),
+            ("username", username),
+            ("password", password),
+        ];
         let req = attohttpc::post("https://app.rippling.com/api/o/token/")
             .params(&params)
             .basic_auth(&self.id, Some(&self.secret));

@@ -15,11 +15,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ApiError {
-                status,
-                description,
-                json: _,
-            } => match description {
+            Self::ApiError { status, description, json: _ } => match description {
                 Some(string) => write!(f, "{string}"),
                 None => write!(f, "Unexpected response status {status}"),
             },
@@ -49,11 +45,7 @@ impl From<Response> for Error {
                             description: obj["detail"].as_str().map(|v| v.to_owned()),
                             json: Some(data),
                         },
-                        _ => Error::ApiError {
-                            status: status,
-                            description: None,
-                            json: Some(data),
-                        },
+                        _ => Error::ApiError { status: status, description: None, json: Some(data) },
                     }
                 } else {
                     Error::UnhandledStatus(res.status().as_u16())
@@ -99,12 +91,7 @@ mod tests {
 
         let req = attohttpc::get(mocking::server_url());
         let error: Error = req.send().unwrap().into();
-        if let Error::ApiError {
-            status,
-            description,
-            json: _,
-        } = error
-        {
+        if let Error::ApiError { status, description, json: _ } = error {
             assert_eq!(status, 400);
             assert_eq!(description, Some("Oops!".into()));
         } else {
@@ -123,12 +110,7 @@ mod tests {
 
         let req = attohttpc::get(mocking::server_url());
         let error: Error = req.send().unwrap().into();
-        if let Error::ApiError {
-            status,
-            description,
-            json: _,
-        } = error
-        {
+        if let Error::ApiError { status, description, json: _ } = error {
             assert_eq!(status, 404);
             assert_eq!(description, Some("Not found".into()));
         } else {
