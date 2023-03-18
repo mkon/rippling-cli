@@ -6,7 +6,8 @@ use super::session::Session;
 use super::Result;
 
 pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
-    let req = session.post(&format!("pto/api/get_holiday_calendar/"))?
+    let req = session
+        .post(&format!("pto/api/get_holiday_calendar/"))?
         .json(&json!({"allow_time_admin": false, "only_payable": false}));
     super::request_to_result(req, |r| r.json::<Vec<HolidaysOfYear>>())
 }
@@ -19,7 +20,7 @@ pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
 #[derive(Clone, Debug, Deserialize)]
 pub struct HolidaysOfYear {
     pub year: u16,
-    pub holidays: Vec<Holiday>
+    pub holidays: Vec<Holiday>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -50,8 +51,8 @@ pub struct LeaveRequest {
 
 #[cfg(test)]
 mod tests {
-    use utilities::mocking;
     use time::macros::date;
+    use utilities::mocking;
 
     use super::*;
 
@@ -67,7 +68,7 @@ mod tests {
         let data = leave_requests(&session()).unwrap();
         assert_eq!(data.len(), 2);
         let days: Vec<Date> = data.into_iter().map(|h| h.start_date).collect();
-        assert_eq!(days, vec![date![2022-06-09], date![2022-05-23]]);
+        assert_eq!(days, vec![date![2022 - 06 - 09], date![2022 - 05 - 23]]);
     }
 
     #[test]
@@ -78,6 +79,6 @@ mod tests {
         let y2023 = data.into_iter().find(|y| y.year == 2023).unwrap();
         assert_eq!(y2023.holidays.len(), 13);
         let days: Vec<Date> = y2023.holidays.into_iter().take(3).map(|h| h.start_date).collect();
-        assert_eq!(days, vec![date![2023-01-01], date![2023-01-06], date![2023-04-07]]);
+        assert_eq!(days, vec![date![2023 - 01 - 01], date![2023 - 01 - 06], date![2023 - 04 - 07]]);
     }
 }

@@ -3,7 +3,10 @@ use regex::Regex;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
-use super::{Result, pto::{self, CheckOutcome}};
+use super::{
+    pto::{self, CheckOutcome},
+    Result,
+};
 
 use crate::client::{
     self,
@@ -57,8 +60,9 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEnt
 
     if check {
         let pto = pto::check(date)?;
-        if let CheckOutcome::WorkingDay = pto {} else {
-            return Err(super::Error::NoWorkingDay(pto))
+        if let CheckOutcome::WorkingDay = pto {
+        } else {
+            return Err(super::Error::NoWorkingDay(pto));
         }
     }
 

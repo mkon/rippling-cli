@@ -1,9 +1,9 @@
 pub mod account_info;
 pub mod break_policy;
 pub mod mfa;
+pub mod pto;
 mod public;
 mod session;
-pub mod pto;
 pub mod time_entries;
 
 pub use public::Client as PublicClient;

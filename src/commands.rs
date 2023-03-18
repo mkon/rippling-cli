@@ -89,7 +89,7 @@ impl std::fmt::Display for Error {
                 CheckOutcome::Leave => write!(f, "You are on PTO"),
                 CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),
                 CheckOutcome::Weekend(d) => write!(f, "It is a weekend ({})", d),
-                _ => panic!("Unhandled enum match")
+                _ => panic!("Unhandled enum match"),
             },
         }
     }

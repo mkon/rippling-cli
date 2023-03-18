@@ -1,7 +1,7 @@
 use std::thread;
 
-use time::Date;
 use crate::client::pto::Holiday;
+use time::Date;
 
 use super::Result;
 
@@ -13,11 +13,10 @@ pub enum CheckOutcome {
     Weekend(time::Weekday),
 }
 
-
 pub fn check(date: Date) -> Result<CheckOutcome> {
-    let tw = thread::spawn(move ||{ is_weekend(date) });
-    let th = thread::spawn(move ||{ check_holiday(date) });
-    let tl = thread::spawn(move ||{ is_leave_request(date) });
+    let tw = thread::spawn(move || is_weekend(date));
+    let th = thread::spawn(move || check_holiday(date));
+    let tl = thread::spawn(move || is_leave_request(date));
 
     if let Some(weekend) = tw.join().unwrap() {
         Ok(CheckOutcome::Weekend(weekend))
@@ -55,6 +54,6 @@ fn is_weekend(date: Date) -> Option<time::Weekday> {
         time::Weekday::Wednesday => None,
         time::Weekday::Thursday => None,
         time::Weekday::Friday => None,
-        _ => Some(day)
+        _ => Some(day),
     }
 }
