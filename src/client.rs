@@ -6,9 +6,9 @@ mod public;
 mod session;
 pub mod time_entries;
 
-pub use public::Client as PublicClient;
 use attohttpc::RequestBuilder;
 use attohttpc::Response;
+pub use public::Client as PublicClient;
 pub use session::Session;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -98,7 +98,7 @@ fn request_to_result<E, F, T, B>(req: RequestBuilder<B>, f: F) -> Result<T>
 where
     F: FnOnce(Response) -> std::result::Result<T, E>,
     Error: From<E>,
-    B: attohttpc::body::Body
+    B: attohttpc::body::Body,
 {
     let res = req.send()?;
     match res.status() {
@@ -107,7 +107,7 @@ where
         _ => {
             dbg!("Not a ok response");
             Err(res.into())
-        },
+        }
     }
 }
 
@@ -128,7 +128,12 @@ mod tests {
 
         let req = attohttpc::get(mocking::server_url());
         let error: Error = req.send().unwrap().into();
-        if let Error::ApiError { status, description, json: _ } = error {
+        if let Error::ApiError {
+            status,
+            description,
+            json: _,
+        } = error
+        {
             assert_eq!(status, 400);
             assert_eq!(description, Some("Oops!".into()));
         } else {
@@ -147,7 +152,12 @@ mod tests {
 
         let req = attohttpc::get(mocking::server_url());
         let error: Error = req.send().unwrap().into();
-        if let Error::ApiError { status, description, json: _ } = error {
+        if let Error::ApiError {
+            status,
+            description,
+            json: _,
+        } = error
+        {
             assert_eq!(status, 404);
             assert_eq!(description, Some("Not found".into()));
         } else {

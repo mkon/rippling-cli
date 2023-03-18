@@ -13,8 +13,7 @@ pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
 }
 
 pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
-    let req = session.get("pto/api/leave_requests/")
-        .param("role", session.role().unwrap());
+    let req = session.get("pto/api/leave_requests/").param("role", session.role().unwrap());
     super::request_to_result(req, |r| r.json::<Vec<LeaveRequest>>())
 }
 

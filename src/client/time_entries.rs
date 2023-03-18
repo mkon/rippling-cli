@@ -19,8 +19,7 @@ pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry
 }
 
 pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
-    let req = session.get("time_tracking/api/time_entries")
-        .param("endTime", ""); // Filter for entries with no end time
+    let req = session.get("time_tracking/api/time_entries").param("endTime", ""); // Filter for entries with no end time
     super::request_to_result(req, |r| {
         let entries = r.json::<Vec<TimeEntry>>()?;
         Result::Ok(entries.into_iter().next())
@@ -28,25 +27,29 @@ pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
 }
 
 pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
-    let req = session.post(&format!("time_tracking/api/time_entries/{id}/start_break"))
+    let req = session
+        .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?;
     super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
 pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
-    let req = session.post(&format!("time_tracking/api/time_entries/{id}/end_break"))
+    let req = session
+        .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
         .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?;
     super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
 pub fn start_clock(session: &Session) -> Result<TimeEntry> {
-    let req = session.post("time_tracking/api/time_entries/start_clock")
+    let req = session
+        .post("time_tracking/api/time_entries/start_clock")
         .json(&json!({"source": "WEB_CLOCK", "role": session.role().unwrap()}))?;
     super::request_to_result(req, |r| r.json::<TimeEntry>())
 }
 
 pub fn end_clock(session: &Session, id: &str) -> Result<TimeEntry> {
-    let req = session.post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
+    let req = session
+        .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
         .json(&json!({"source": "WEB_CLOCK"}))?;
     super::request_to_result(req, |r| r.json::<TimeEntry>())
 }

@@ -1,13 +1,14 @@
+use attohttpc::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
-use attohttpc::StatusCode;
 
 use super::session::Session;
 use super::Result;
 
 pub fn request(session: &Session, auth_option: &str) -> Result<MfaInfo> {
     let body = json!({ "authOption": auth_option });
-    let req = session.post("verification/api/identity_verification/request_authorization_code")
+    let req = session
+        .post("verification/api/identity_verification/request_authorization_code")
         .json(&body)?;
     let res = req.send()?;
     match res.status() {

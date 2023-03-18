@@ -62,8 +62,7 @@ impl Session {
     }
 
     pub fn request(&self, method: attohttpc::Method, path: &str) -> attohttpc::RequestBuilder {
-        let mut builder = attohttpc::RequestBuilder::new(method, self.url_for(path))
-            .bearer_auth(&self.access_token);
+        let mut builder = attohttpc::RequestBuilder::new(method, self.url_for(path)).bearer_auth(&self.access_token);
         if let Some(value) = &self.company {
             builder = builder.header("company", value);
         }
