@@ -1,0 +1,810 @@
+[
+  {
+    "year": 2016,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-01-01",
+        "endDate": "2016-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Martin Luther King Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-01-18",
+        "endDate": "2016-01-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Presidents' Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-02-15",
+        "endDate": "2016-02-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Memorial Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-05-30",
+        "endDate": "2016-05-30",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Juneteenth",
+        "type": "FULL_DAY",
+        "startDate": "2016-06-20",
+        "endDate": "2016-06-20",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Independence Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-07-04",
+        "endDate": "2016-07-04",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labor Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-09-05",
+        "endDate": "2016-09-05",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Columbus Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-10-10",
+        "endDate": "2016-10-10",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Veterans Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-11-11",
+        "endDate": "2016-11-11",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Thanksgiving Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-11-24",
+        "endDate": "2016-11-24",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2016-12-26",
+        "endDate": "2016-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2017,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-01-02",
+        "endDate": "2017-01-02",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Martin Luther King Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-01-16",
+        "endDate": "2017-01-16",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Presidents' Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-02-20",
+        "endDate": "2017-02-20",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Memorial Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-05-29",
+        "endDate": "2017-05-29",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Juneteenth",
+        "type": "FULL_DAY",
+        "startDate": "2017-06-19",
+        "endDate": "2017-06-19",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Independence Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-07-04",
+        "endDate": "2017-07-04",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labor Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-09-04",
+        "endDate": "2017-09-04",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Columbus Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-10-09",
+        "endDate": "2017-10-09",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Veterans Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-11-10",
+        "endDate": "2017-11-10",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Thanksgiving Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-11-23",
+        "endDate": "2017-11-23",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2017-12-25",
+        "endDate": "2017-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2018,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-01-01",
+        "endDate": "2018-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Martin Luther King Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-01-15",
+        "endDate": "2018-01-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Presidents' Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-02-19",
+        "endDate": "2018-02-19",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Memorial Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-05-28",
+        "endDate": "2018-05-28",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Juneteenth",
+        "type": "FULL_DAY",
+        "startDate": "2018-06-19",
+        "endDate": "2018-06-19",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Independence Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-07-04",
+        "endDate": "2018-07-04",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labor Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-09-03",
+        "endDate": "2018-09-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Columbus Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-10-08",
+        "endDate": "2018-10-08",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Veterans Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-11-12",
+        "endDate": "2018-11-12",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Thanksgiving Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-11-22",
+        "endDate": "2018-11-22",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2018-12-25",
+        "endDate": "2018-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2019,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-01-01",
+        "endDate": "2019-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Martin Luther King Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-01-21",
+        "endDate": "2019-01-21",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Presidents' Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-02-18",
+        "endDate": "2019-02-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Memorial Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-05-27",
+        "endDate": "2019-05-27",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Juneteenth",
+        "type": "FULL_DAY",
+        "startDate": "2019-06-19",
+        "endDate": "2019-06-19",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Independence Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-07-04",
+        "endDate": "2019-07-04",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labor Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-09-02",
+        "endDate": "2019-09-02",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Columbus Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-10-14",
+        "endDate": "2019-10-14",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Veterans Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-11-11",
+        "endDate": "2019-11-11",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Thanksgiving Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-11-28",
+        "endDate": "2019-11-28",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2019-12-25",
+        "endDate": "2019-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2022,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-01-01",
+        "endDate": "2022-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Epiphany",
+        "type": "FULL_DAY",
+        "startDate": "2022-01-06",
+        "endDate": "2022-01-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Good Friday",
+        "type": "FULL_DAY",
+        "startDate": "2022-04-15",
+        "endDate": "2022-04-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Easter Monday",
+        "type": "FULL_DAY",
+        "startDate": "2022-04-18",
+        "endDate": "2022-04-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labour Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-05-01",
+        "endDate": "2022-05-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Ascension Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-05-26",
+        "endDate": "2022-05-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Whit Monday",
+        "type": "FULL_DAY",
+        "startDate": "2022-06-06",
+        "endDate": "2022-06-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Corpus Christi",
+        "type": "FULL_DAY",
+        "startDate": "2022-06-16",
+        "endDate": "2022-06-16",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Assumption Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-08-15",
+        "endDate": "2022-08-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Day of German Unity",
+        "type": "FULL_DAY",
+        "startDate": "2022-10-03",
+        "endDate": "2022-10-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "All Saints' Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-11-01",
+        "endDate": "2022-11-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2022-12-25",
+        "endDate": "2022-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "2nd Day of Christmas",
+        "type": "FULL_DAY",
+        "startDate": "2022-12-26",
+        "endDate": "2022-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2023,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-01-01",
+        "endDate": "2023-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Epiphany",
+        "type": "FULL_DAY",
+        "startDate": "2023-01-06",
+        "endDate": "2023-01-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Good Friday",
+        "type": "FULL_DAY",
+        "startDate": "2023-04-07",
+        "endDate": "2023-04-07",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Easter Monday",
+        "type": "FULL_DAY",
+        "startDate": "2023-04-10",
+        "endDate": "2023-04-10",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labour Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-05-01",
+        "endDate": "2023-05-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Ascension Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-05-18",
+        "endDate": "2023-05-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Whit Monday",
+        "type": "FULL_DAY",
+        "startDate": "2023-05-29",
+        "endDate": "2023-05-29",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Corpus Christi",
+        "type": "FULL_DAY",
+        "startDate": "2023-06-08",
+        "endDate": "2023-06-08",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Assumption Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-08-15",
+        "endDate": "2023-08-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Day of German Unity",
+        "type": "FULL_DAY",
+        "startDate": "2023-10-03",
+        "endDate": "2023-10-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "All Saints' Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-11-01",
+        "endDate": "2023-11-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2023-12-25",
+        "endDate": "2023-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "2nd Day of Christmas",
+        "type": "FULL_DAY",
+        "startDate": "2023-12-26",
+        "endDate": "2023-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2024,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-01-01",
+        "endDate": "2024-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Epiphany",
+        "type": "FULL_DAY",
+        "startDate": "2024-01-06",
+        "endDate": "2024-01-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Good Friday",
+        "type": "FULL_DAY",
+        "startDate": "2024-04-15",
+        "endDate": "2024-04-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Easter Monday",
+        "type": "FULL_DAY",
+        "startDate": "2024-04-18",
+        "endDate": "2024-04-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labour Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-05-01",
+        "endDate": "2024-05-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Ascension Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-05-26",
+        "endDate": "2024-05-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Whit Monday",
+        "type": "FULL_DAY",
+        "startDate": "2024-06-06",
+        "endDate": "2024-06-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Corpus Christi",
+        "type": "FULL_DAY",
+        "startDate": "2024-06-16",
+        "endDate": "2024-06-16",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Assumption Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-08-15",
+        "endDate": "2024-08-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Day of German Unity",
+        "type": "FULL_DAY",
+        "startDate": "2024-10-03",
+        "endDate": "2024-10-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "All Saints' Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-11-01",
+        "endDate": "2024-11-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2024-12-25",
+        "endDate": "2024-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "2nd Day of Christmas",
+        "type": "FULL_DAY",
+        "startDate": "2024-12-26",
+        "endDate": "2024-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2025,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-01-01",
+        "endDate": "2025-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Epiphany",
+        "type": "FULL_DAY",
+        "startDate": "2025-01-06",
+        "endDate": "2025-01-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Good Friday",
+        "type": "FULL_DAY",
+        "startDate": "2025-04-15",
+        "endDate": "2025-04-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Easter Monday",
+        "type": "FULL_DAY",
+        "startDate": "2025-04-18",
+        "endDate": "2025-04-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labour Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-05-01",
+        "endDate": "2025-05-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Ascension Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-05-26",
+        "endDate": "2025-05-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Whit Monday",
+        "type": "FULL_DAY",
+        "startDate": "2025-06-06",
+        "endDate": "2025-06-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Corpus Christi",
+        "type": "FULL_DAY",
+        "startDate": "2025-06-16",
+        "endDate": "2025-06-16",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Assumption Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-08-15",
+        "endDate": "2025-08-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Day of German Unity",
+        "type": "FULL_DAY",
+        "startDate": "2025-10-03",
+        "endDate": "2025-10-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "All Saints' Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-11-01",
+        "endDate": "2025-11-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2025-12-25",
+        "endDate": "2025-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "2nd Day of Christmas",
+        "type": "FULL_DAY",
+        "startDate": "2025-12-26",
+        "endDate": "2025-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  },
+  {
+    "year": 2026,
+    "holidays": [
+      {
+        "name": "New Year's Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-01-01",
+        "endDate": "2026-01-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Epiphany",
+        "type": "FULL_DAY",
+        "startDate": "2026-01-06",
+        "endDate": "2026-01-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Good Friday",
+        "type": "FULL_DAY",
+        "startDate": "2026-04-15",
+        "endDate": "2026-04-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Easter Monday",
+        "type": "FULL_DAY",
+        "startDate": "2026-04-18",
+        "endDate": "2026-04-18",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Labour Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-05-01",
+        "endDate": "2026-05-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Ascension Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-05-26",
+        "endDate": "2026-05-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Whit Monday",
+        "type": "FULL_DAY",
+        "startDate": "2026-06-06",
+        "endDate": "2026-06-06",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Corpus Christi",
+        "type": "FULL_DAY",
+        "startDate": "2026-06-16",
+        "endDate": "2026-06-16",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Assumption Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-08-15",
+        "endDate": "2026-08-15",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Day of German Unity",
+        "type": "FULL_DAY",
+        "startDate": "2026-10-03",
+        "endDate": "2026-10-03",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "All Saints' Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-11-01",
+        "endDate": "2026-11-01",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "Christmas Day",
+        "type": "FULL_DAY",
+        "startDate": "2026-12-25",
+        "endDate": "2026-12-25",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      },
+      {
+        "name": "2nd Day of Christmas",
+        "type": "FULL_DAY",
+        "startDate": "2026-12-26",
+        "endDate": "2026-12-26",
+        "shouldCountTowardHoursWorkedForOvertime": false
+      }
+    ]
+  }
+]

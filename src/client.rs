@@ -1,6 +1,7 @@
 pub mod account_info;
 pub mod break_policy;
 pub mod mfa;
+pub mod pto;
 mod public;
 mod session;
 pub mod time_entries;
@@ -19,14 +20,13 @@ pub enum Error {
         description: Option<String>,
         json: Option<serde_json::Value>,
     },
-    Wrapping(Box<dyn std::error::Error>),
+    Wrapping(String),
     UnexpectedPayload,
     UnhandledStatus(u16),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // dbg!(self);
         match self {
             Self::ApiError {
                 status,
@@ -45,7 +45,7 @@ impl std::fmt::Display for Error {
 
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        Error::Wrapping(Box::new(value))
+        Error::Wrapping(format!("{}", value))
     }
 }
 
@@ -84,13 +84,13 @@ impl From<reqwest::blocking::Response> for Error {
 
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
-        Error::Wrapping(Box::new(value))
+        Error::Wrapping(format!("{}", value))
     }
 }
 
 impl From<url::ParseError> for Error {
     fn from(value: url::ParseError) -> Self {
-        Error::Wrapping(Box::new(value))
+        Error::Wrapping(format!("{}", value))
     }
 }
 

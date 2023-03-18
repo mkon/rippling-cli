@@ -1,13 +1,16 @@
 use clap::{arg, Parser};
 use regex::Regex;
-use std::result::Result as StdResult;
+use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
-use super::Result;
+use super::{
+    pto::{self, CheckOutcome},
+    Result,
+};
 
 use crate::client::{
     self,
-    break_policy::{self},
+    break_policy::{self, BreakPolicy},
     time_entries::{NewTimeEntry, TimeEntry},
 };
 
@@ -23,6 +26,9 @@ pub struct Command {
     /// Defaults to 0 (today)
     #[arg(short, long)]
     pub days_ago: Option<u8>,
+    /// Before submitting check for overlap with holidays, weekends or PTO
+    #[arg(short, long)]
+    pub check: bool,
     #[arg(value_parser = parse_input_shifts)]
     pub ranges: Vec<TimeRange>,
 }
@@ -32,7 +38,7 @@ pub fn execute(cmd: &Command) {
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
     super::wrap_in_spinner(
-        || add_entry(date, &cmd.ranges),
+        || add_entry(date, &cmd.ranges, cmd.check),
         |entry| {
             format!(
                 "Added entry from {} to {}",
@@ -43,10 +49,22 @@ pub fn execute(cmd: &Command) {
     )
 }
 
-fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
+fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEntry> {
+    let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, client::Error> {
+        let session = super::get_session();
+        let policy = break_policy::active_policy(&session)?;
+        break_policy::fetch(&session, &policy.break_policy)
+    });
+
     let session = super::get_session();
-    let policy = break_policy::active_policy(&session)?;
-    let break_policy = break_policy::fetch(&session, &policy.break_policy)?;
+
+    if check {
+        let pto = pto::check(date)?;
+        if let CheckOutcome::WorkingDay = pto {
+        } else {
+            return Err(super::Error::NoWorkingDay(pto));
+        }
+    }
 
     // List of times where either work started or stopped
     let mut events: Vec<Time> = Vec::new();
@@ -63,6 +81,7 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>) -> Result<TimeEntry> {
     let end_time = events.pop().unwrap();
     entry.add_shift(start_time, end_time);
 
+    let break_policy = policy_thread.join().unwrap()?;
     let btype = break_policy.manual_break_type().unwrap();
     for pair in events.chunks(2) {
         entry.add_break(btype.id.to_owned(), pair[0], pair[1]);
@@ -172,7 +191,7 @@ mod tests {
             )))
             .create();
 
-        let res = add_entry(date!(2023 - 02 - 07), &ranges);
+        let res = add_entry(date!(2023 - 02 - 07), &ranges, false);
         assert!(res.is_ok());
     }
 

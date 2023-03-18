@@ -1,6 +1,7 @@
 pub mod live;
 pub mod manual_entry;
 pub mod mfa;
+pub mod pto;
 
 use std::io;
 
@@ -12,6 +13,8 @@ use crate::{
     client::{self, time_entries::TimeEntryBreak, Session},
     persistence::Settings,
 };
+
+use self::pto::CheckOutcome;
 
 const FORMAT_R: &[time::format_description::FormatItem] = format_description!("[hour]:[minute]");
 
@@ -70,6 +73,7 @@ pub enum Error {
     NotOnBreak,
     NoManualBreakType,
     UnexpectedResponse,
+    NoWorkingDay(CheckOutcome),
 }
 
 impl std::fmt::Display for Error {
@@ -81,6 +85,12 @@ impl std::fmt::Display for Error {
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
             Self::UnexpectedResponse => write!(f, "Unexpected response received"),
+            Self::NoWorkingDay(r) => match r {
+                CheckOutcome::Leave => write!(f, "You are on PTO"),
+                CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),
+                CheckOutcome::Weekend(d) => write!(f, "It is a weekend ({})", d),
+                _ => panic!("Unhandled enum match"),
+            },
         }
     }
 }
@@ -113,7 +123,7 @@ pub fn execute(command: &Commands) {
     };
 }
 
-pub fn authenticate(cfg: &Settings) {
+fn authenticate(cfg: &Settings) {
     let username = match &cfg.username {
         None => ask_user_input("Enter your user name"),
         Some(value) => value.clone(),
@@ -151,7 +161,9 @@ fn get_session() -> Session {
 }
 
 fn today() -> Date {
-    OffsetDateTime::now_local().unwrap().date()
+    // This seems to crash sometimes ...
+    // OffsetDateTime::now_local().unwrap().date()
+    OffsetDateTime::now_utc().to_offset(local_offset()).date()
 }
 
 fn wrap_in_spinner<T, E, Fn, Ok>(f: Fn, ok: Ok)
