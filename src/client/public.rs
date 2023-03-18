@@ -21,7 +21,7 @@ impl Client {
 
     /// Returns a new public client with id and secret configured remotely
     pub fn initialize_from_remote() -> Result<Self> {
-        let res = reqwest::blocking::get("https://app.rippling.com/login")?;
+        let res = attohttpc::get("https://app.rippling.com/login").send()?;
         let html = res.text()?;
         let re = Regex::new(r#"<script>window.ripplingConfig = (\{.*\})</script>"#).unwrap();
         match re.captures(&html) {
@@ -37,9 +37,8 @@ impl Client {
     /// Returns a new authenticated client
     pub fn authenticate(&self, username: &str, password: &str) -> Result<super::Session> {
         let params = [("grant_type", "password"), ("username", username), ("password", password)];
-        let req = reqwest::blocking::Client::new()
-            .post("https://app.rippling.com/api/o/token/")
-            .form(&params)
+        let req = attohttpc::post("https://app.rippling.com/api/o/token/")
+            .params(&params)
             .basic_auth(&self.id, Some(&self.secret));
         let result: TokenJson = req.send()?.json()?;
 
