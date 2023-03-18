@@ -1,1 +1,4 @@
+edition = "2021"
 max_width = 140
+# struct_lit_width = 40
+# use_small_heuristics = "Max"
