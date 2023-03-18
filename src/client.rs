@@ -25,8 +25,6 @@ where
     match res.status() {
         attohttpc::StatusCode::OK => f(res).map_err(Error::from),
         attohttpc::StatusCode::CREATED => f(res).map_err(Error::from),
-        _ => {
-            Err(res.into())
-        }
+        _ => Err(res.into()),
     }
 }
