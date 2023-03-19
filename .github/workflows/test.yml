@@ -10,20 +10,25 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  test:
+    name: Test
     runs-on: ubuntu-latest
 
     steps:
+    - name: Rustup
+      run: |
+        rm $(which rustfmt)
+        rm $(which cargo-fmt)
+        rustup self update
+        rustup update
+        rustup show
+      # rustup toolchain install stable --profile minimal
     - uses: actions/checkout@v3
-    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
     - name: Check
       run: cargo check --locked
     - name: Formatting
-      run: |
-        rustfmt **/*.rs
-        git diff --exit-code .
+      run: cargo fmt --check
     - uses: szenius/set-timezone@v1.0
       with:
         timezoneLinux: "Europe/Berlin"
