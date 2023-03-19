@@ -2,7 +2,7 @@ name: Release
 
 on:
   release:
-    types: [created]
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -10,36 +10,30 @@ jobs:
     name: MacOS
     runs-on: macos-latest
     steps:
+      - name: Rustup
+        run: rustup target add aarch64-apple-darwin
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          target: aarch64-apple-darwin
-          override: true
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --target aarch64-apple-darwin
+      - name: Zip
+        run: zip -j rippling-cli.macos-arm.zip ./target/aarch64-apple-darwin/release/rippling-cli
       - name: Upload
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./target/release/rippling-cli
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_SECRET }}
+        run: gh release upload ${{ github.event.release.tag_name }} rippling-cli.macos-arm.zip
 
   linux:
     name: Linux
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt install gcc-multilib
       - uses: actions/checkout@v3
-      - name: Setup Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+      - name: Tar
+        run: gzip -c ./target/x86_64-unknown-linux-gnu/release/rippling-cli > rippling-cli.linux-x86_64.gz
       - name: Upload
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./target/release/rippling-cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_SECRET }}
+        run: gh release upload ${{ github.event.release.tag_name }} rippling-cli.linux-x86_64.gz
