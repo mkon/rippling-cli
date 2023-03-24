@@ -1,34 +1,25 @@
-use attohttpc::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 
-use super::session::Session;
+use super::session::{Session, StatusCode};
 use super::Result;
 
 pub fn request(session: &Session, auth_option: &str) -> Result<MfaInfo> {
     let body = json!({ "authOption": auth_option });
-    let req = session
-        .post("verification/api/identity_verification/request_authorization_code")
-        .json(&body)?;
-    let res = req.send()?;
-    match res.status() {
-        StatusCode::OK => res.json::<MfaInfo>().map_err(super::Error::from),
-        StatusCode::BAD_REQUEST => res.json::<MfaInfo>().map_err(super::Error::from),
-        _ => Err(res.into()),
-    }
+    session
+        .post2("verification/api/identity_verification/request_authorization_code")
+        .send_json(&body)?
+        .accept_states(vec![StatusCode::OK, StatusCode::BAD_REQUEST])
+        .parse_json::<MfaInfo>()
 }
 
 pub fn submit(session: &Session, auth_option: &str, code: &str) -> Result<MfaInfo> {
     let body = json!({"authOption": auth_option, "authorizationCode": code});
-    let req = session
-        .post("verification/api/identity_verification/verify_authorization_code")
-        .json(&body)?;
-    let res = req.send()?;
-    match res.status() {
-        StatusCode::OK => res.json::<MfaInfo>().map_err(super::Error::from),
-        StatusCode::BAD_REQUEST => res.json::<MfaInfo>().map_err(super::Error::from),
-        _ => Err(res.into()),
-    }
+    session
+        .post2("verification/api/identity_verification/verify_authorization_code")
+        .send_json(&body)?
+        .accept_states(vec![StatusCode::OK, StatusCode::BAD_REQUEST])
+        .parse_json::<MfaInfo>()
 }
 
 #[derive(Deserialize)]

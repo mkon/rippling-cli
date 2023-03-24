@@ -6,17 +6,18 @@ use super::session::Session;
 use super::Result;
 
 pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
-    let req = session
-        .post(&format!("pto/api/get_holiday_calendar/"))
-        .json(&json!({"allow_time_admin": false, "only_payable": false}))?;
-    super::request_to_result(req, |r| r.json::<Vec<HolidaysOfYear>>())
+    session
+        .post2(&format!("pto/api/get_holiday_calendar/"))
+        .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
+        .parse_json()
 }
 
 pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
-    let req = session
-        .get("pto/api/leave_requests/")
-        .param("role", session.role().unwrap());
-    super::request_to_result(req, |r| r.json::<Vec<LeaveRequest>>())
+    session
+        .get2("pto/api/leave_requests/")
+        .param("role", session.role().unwrap())
+        .send()?
+        .parse_json()
 }
 
 #[derive(Clone, Debug, Deserialize)]

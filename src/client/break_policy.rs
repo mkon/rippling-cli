@@ -6,16 +6,13 @@ use super::session::Session;
 use super::{Error, Result};
 
 pub fn active_policy(session: &Session) -> Result<ActivePolicy> {
-    let req = session.get("time_tracking/api/time_entry_policies/get_active_policy");
-    super::request_to_result(req, |r| {
-        let mut map = r.json::<HashMap<String, ActivePolicy>>()?;
-        map.remove(session.role().unwrap()).ok_or(Error::UnexpectedPayload)
-    })
+    let mut map: HashMap<String, ActivePolicy> = session
+        .get_json("time_tracking/api/time_entry_policies/get_active_policy")?;
+    map.remove(session.role().unwrap()).ok_or(Error::UnexpectedPayload)
 }
 
 pub fn fetch(session: &Session, id: &str) -> Result<BreakPolicy> {
-    let req = session.get(&format!("time_tracking/api/time_entry_break_policies/{id}"));
-    super::request_to_result(req, |r| r.json::<BreakPolicy>())
+    session.get_json(&format!("time_tracking/api/time_entry_break_policies/{id}"))
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -3,11 +3,8 @@ use serde::Deserialize;
 use super::{Error, Result, Session};
 
 pub fn fetch(session: &Session) -> Result<AccountInfo> {
-    let req = session.get("auth_ext/get_account_info");
-    super::request_to_result(req, |r| {
-        let list = r.json::<Vec<AccountInfo>>()?;
-        list.into_iter().next().ok_or(Error::UnexpectedPayload)
-    })
+    let list: Vec<AccountInfo> = session.get_json("auth_ext/get_account_info")?;
+    list.into_iter().next().ok_or(Error::UnexpectedPayload)
 }
 
 #[derive(Debug, Deserialize)]
