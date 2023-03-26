@@ -1,9 +1,6 @@
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
-use crate::client::{
-    break_policy,
-    time_entries,
-};
+use crate::client::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
 
 #[spinner_wrap]
