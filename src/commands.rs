@@ -7,7 +7,7 @@ use std::io;
 
 use clap::Subcommand;
 use spinners::{Spinner, Spinners};
-use time::{macros::format_description, Date, OffsetDateTime, UtcOffset};
+use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::{
     client::{self, time_entries::TimeEntryBreak, Session},
@@ -199,10 +199,35 @@ fn local_time_format(datetime: OffsetDateTime) -> String {
 }
 
 fn local_offset() -> UtcOffset {
-    UtcOffset::current_local_offset().unwrap_or_else(|_| {
-        let time_zone = tzdb::local_tz()
-            .unwrap()
-            .find_local_time_type(OffsetDateTime::now_utc().unix_timestamp());
+    local_offset_at(OffsetDateTime::now_utc())
+}
+
+fn local_offset_at(time: OffsetDateTime) -> UtcOffset {
+    UtcOffset::local_offset_at(time).unwrap_or_else(|_| {
+        let time_zone = tzdb::local_tz().unwrap().find_local_time_type(time.unix_timestamp());
         UtcOffset::from_whole_seconds(time_zone.unwrap().ut_offset()).unwrap()
     })
+}
+
+fn local_offset_estimated_at(time: PrimitiveDateTime) -> UtcOffset {
+    let odt = time.assume_offset(local_offset());
+    local_offset_at(odt)
+}
+
+#[cfg(test)]
+mod tests {
+    use time::{macros::datetime, UtcOffset};
+
+    #[test]
+    fn test_test_time_offset() {
+        assert_eq!(
+            super::local_offset_estimated_at(datetime!(2023-03-26 1:00)),
+            UtcOffset::from_whole_seconds(3600).unwrap()
+        );
+
+        assert_eq!(
+            super::local_offset_estimated_at(datetime!(2023-03-26 3:00)),
+            UtcOffset::from_whole_seconds(7200).unwrap()
+        );
+    }
 }

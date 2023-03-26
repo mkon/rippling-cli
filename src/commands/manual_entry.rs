@@ -95,7 +95,7 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEnt
 
 fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {
     let datetime: PrimitiveDateTime = PrimitiveDateTime::new(date, time);
-    datetime.assume_offset(super::local_offset())
+    datetime.assume_offset(super::local_offset_estimated_at(datetime))
 }
 
 /// Sets the regulatory required minimum break per shift according to German labor law
