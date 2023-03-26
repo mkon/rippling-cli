@@ -133,9 +133,7 @@ impl Session {
     }
 
     pub fn get_json<J: DeserializeOwned>(&self, path: &str) -> Result<J> {
-        self.request(Method::GET, path)
-            .send()?
-            .parse_json::<J>()
+        self.request(Method::GET, path).send()?.parse_json::<J>()
     }
 
     pub fn post(&self, path: &str) -> Request {

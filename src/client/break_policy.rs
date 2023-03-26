@@ -6,8 +6,8 @@ use super::session::Session;
 use super::{Error, Result};
 
 pub fn active_policy(session: &Session) -> Result<ActivePolicy> {
-    let mut map: HashMap<String, ActivePolicy> = session
-        .get_json("time_tracking/api/time_entry_policies/get_active_policy")?;
+    let mut map: HashMap<String, ActivePolicy> =
+        session.get_json("time_tracking/api/time_entry_policies/get_active_policy")?;
     map.remove(session.role().unwrap()).ok_or(Error::UnexpectedPayload)
 }
 
