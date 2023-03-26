@@ -11,47 +11,47 @@ use super::Result;
 pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry> {
     let mut body = json!(&entry);
     body.merge(json!({"company":session.company(), "role":session.role()}));
-    let req = session.post("time_tracking/api/time_entries").json(&body)?;
-    super::request_to_result(req, |r| {
-        let entry = r.json::<TimeEntry>()?;
-        Result::Ok(entry)
-    })
+    session
+        .post("time_tracking/api/time_entries")
+        .send_json(&body)?
+        .parse_json()
 }
 
 pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
-    let req = session.get("time_tracking/api/time_entries").param("endTime", ""); // Filter for entries with no end time
-    super::request_to_result(req, |r| {
-        let entries = r.json::<Vec<TimeEntry>>()?;
-        Result::Ok(entries.into_iter().next())
-    })
+    let entries: Vec<TimeEntry> = session
+        .get("time_tracking/api/time_entries")
+        .param("endTime", "") // Filter for entries with no end time
+        .send()?
+        .parse_json()?;
+    Result::Ok(entries.into_iter().next())
 }
 
 pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
-    let req = session
+    session
         .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
-        .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?;
-    super::request_to_result(req, |r| r.json::<TimeEntry>())
+        .send_json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
+        .parse_json()
 }
 
 pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
-    let req = session
+    session
         .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
-        .json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?;
-    super::request_to_result(req, |r| r.json::<TimeEntry>())
+        .send_json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
+        .parse_json()
 }
 
 pub fn start_clock(session: &Session) -> Result<TimeEntry> {
-    let req = session
+    session
         .post("time_tracking/api/time_entries/start_clock")
-        .json(&json!({"source": "WEB_CLOCK", "role": session.role().unwrap()}))?;
-    super::request_to_result(req, |r| r.json::<TimeEntry>())
+        .send_json(&json!({"source": "WEB_CLOCK", "role": session.role().unwrap()}))?
+        .parse_json()
 }
 
 pub fn end_clock(session: &Session, id: &str) -> Result<TimeEntry> {
-    let req = session
+    session
         .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
-        .json(&json!({"source": "WEB_CLOCK"}))?;
-    super::request_to_result(req, |r| r.json::<TimeEntry>())
+        .send_json(&json!({"source": "WEB_CLOCK"}))?
+        .parse_json()
 }
 
 #[derive(Clone, Debug, Serialize)]
