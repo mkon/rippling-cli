@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use spinner_macro::spinner_wrap;
 
 use crate::client;
 
@@ -12,24 +13,24 @@ pub enum Commands {
 }
 
 pub fn execute(cmd: &Commands) {
-    super::wrap_in_spinner(
-        || match cmd {
-            Commands::Request { auth_option } => request(&auth_option),
-            Commands::Submit { auth_option, code } => submit(&auth_option, &code),
-            Commands::Token { code } => token(&code),
-        },
-        |msg| msg,
-    )
+    match cmd {
+        Commands::Request { auth_option } => request_spinner(&auth_option),
+        Commands::Submit { auth_option, code } => submit_spinner(&auth_option, &code),
+        Commands::Token { code } => token_spinner(&code),
+    }
 }
 
+#[spinner_wrap]
 fn request(auth_option: &str) -> Result<String> {
     Ok(client::mfa::request(&super::get_session(), auth_option)?.message)
 }
 
+#[spinner_wrap]
 fn submit(auth_option: &str, code: &str) -> Result<String> {
     Ok(client::mfa::submit(&super::get_session(), auth_option, code)?.message)
 }
 
+#[spinner_wrap]
 fn token(code: &str) -> Result<String> {
     let res = client::mfa::token(&super::get_session(), code)?;
     match res {

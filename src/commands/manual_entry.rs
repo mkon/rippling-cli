@@ -1,5 +1,6 @@
 use clap::{arg, Parser};
 use regex::Regex;
+use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
@@ -37,19 +38,11 @@ pub fn execute(cmd: &Command) {
     let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
-    super::wrap_in_spinner(
-        || add_entry(date, &cmd.ranges, cmd.check),
-        |entry| {
-            format!(
-                "Added entry from {} to {}",
-                super::local_time_format(entry.start_time),
-                super::local_time_format(entry.end_time.unwrap())
-            )
-        },
-    )
+    create_entry_spinner(date, &cmd.ranges, cmd.check)
 }
 
-fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEntry> {
+#[spinner_wrap(entry_to_string)]
+fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEntry> {
     let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, client::Error> {
         let session = super::get_session();
         let policy = break_policy::active_policy(&session)?;
@@ -91,6 +84,14 @@ fn add_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEnt
     }
 
     Ok(client::time_entries::create_entry(&session, &entry)?)
+}
+
+fn entry_to_string(entry: TimeEntry) -> String {
+    format!(
+        "Added entry from {} to {}",
+        super::local_time_format(entry.start_time),
+        super::local_time_format(entry.end_time.unwrap())
+    )
 }
 
 fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {
@@ -153,7 +154,7 @@ mod tests {
     use time::Duration;
     use utilities::mocking;
 
-    use super::{add_entry, TimeRange};
+    use super::{create_entry, TimeRange};
 
     #[test]
     fn it_works() {
@@ -188,7 +189,7 @@ mod tests {
             )))
             .create();
 
-        let res = add_entry(date!(2023 - 02 - 07), &ranges, false);
+        let res = create_entry(date!(2023 - 02 - 07), &ranges, false);
         assert!(res.is_ok());
     }
 

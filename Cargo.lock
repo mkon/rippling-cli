@@ -230,7 +230,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scratch",
- "syn 2.0.0",
+ "syn 2.0.10",
 ]
 
 [[package]]
@@ -247,7 +247,7 @@ checksum = "631569015d0d8d54e6c241733f944042623ab6df7bc3be7466874b05fcdb1c5f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.10",
 ]
 
 [[package]]
@@ -806,7 +806,7 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "rippling-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "attohttpc",
  "clap",
@@ -818,6 +818,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "spinner_macro",
  "spinners",
  "time",
  "tzdb",
@@ -906,7 +907,7 @@ checksum = "78997f4555c22a7971214540c4a661291970619afd56de19f77e0de86296e1e5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.10",
 ]
 
 [[package]]
@@ -939,6 +940,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 
 [[package]]
+name = "spinner_macro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
 name = "spinners"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,9 +998,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.0"
+version = "2.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cff13bb1732bccfe3b246f3fdb09edfd51c01d6f5299b7ccd9457c2e4e37774"
+checksum = "5aad1363ed6d37b84299588d62d3a7d95b5a5c2d9aad5c85609fda12afaa1f40"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1038,7 +1046,7 @@ checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.10",
 ]
 
 [[package]]
