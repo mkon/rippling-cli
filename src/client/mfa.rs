@@ -24,7 +24,7 @@ pub fn submit(session: &Session, auth_option: &str, code: &str) -> Result<MfaInf
 
 pub fn token(session: &Session, code: &str) -> Result<bool> {
     let body = json!({"token": code, "fromLogin": true, "method": "AUTHENTICATOR"});
-    let res = session.post2("auth_ext/verify_token").send_json(&body)?;
+    let res = session.post("auth_ext/verify_token").send_json(&body)?;
     match res.status() {
         StatusCode::OK => Ok(true),
         StatusCode::FORBIDDEN => Ok(false),
