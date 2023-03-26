@@ -12,14 +12,14 @@ pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry
     let mut body = json!(&entry);
     body.merge(json!({"company":session.company(), "role":session.role()}));
     session
-        .post2("time_tracking/api/time_entries")
+        .post("time_tracking/api/time_entries")
         .send_json(&body)?
         .parse_json()
 }
 
 pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
     let entries: Vec<TimeEntry> = session
-        .get2("time_tracking/api/time_entries")
+        .get("time_tracking/api/time_entries")
         .param("endTime", "") // Filter for entries with no end time
         .send()?
         .parse_json()?;
@@ -28,28 +28,28 @@ pub fn current_entry(session: &Session) -> Result<Option<TimeEntry>> {
 
 pub fn start_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
     session
-        .post2(&format!("time_tracking/api/time_entries/{id}/start_break"))
+        .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
         .send_json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
         .parse_json()
 }
 
 pub fn end_break(session: &Session, id: &str, break_type_id: &str) -> Result<TimeEntry> {
     session
-        .post2(&format!("time_tracking/api/time_entries/{id}/end_break"))
+        .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
         .send_json(&json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
         .parse_json()
 }
 
 pub fn start_clock(session: &Session) -> Result<TimeEntry> {
     session
-        .post2("time_tracking/api/time_entries/start_clock")
+        .post("time_tracking/api/time_entries/start_clock")
         .send_json(&json!({"source": "WEB_CLOCK", "role": session.role().unwrap()}))?
         .parse_json()
 }
 
 pub fn end_clock(session: &Session, id: &str) -> Result<TimeEntry> {
     session
-        .post2(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
+        .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
         .send_json(&json!({"source": "WEB_CLOCK"}))?
         .parse_json()
 }

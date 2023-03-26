@@ -7,7 +7,7 @@ use super::Result;
 pub fn request(session: &Session, auth_option: &str) -> Result<MfaInfo> {
     let body = json!({ "authOption": auth_option });
     session
-        .post2("verification/api/identity_verification/request_authorization_code")
+        .post("verification/api/identity_verification/request_authorization_code")
         .send_json(&body)?
         .accept_states(vec![StatusCode::OK, StatusCode::BAD_REQUEST])
         .parse_json::<MfaInfo>()
@@ -16,7 +16,7 @@ pub fn request(session: &Session, auth_option: &str) -> Result<MfaInfo> {
 pub fn submit(session: &Session, auth_option: &str, code: &str) -> Result<MfaInfo> {
     let body = json!({"authOption": auth_option, "authorizationCode": code});
     session
-        .post2("verification/api/identity_verification/verify_authorization_code")
+        .post("verification/api/identity_verification/verify_authorization_code")
         .send_json(&body)?
         .accept_states(vec![StatusCode::OK, StatusCode::BAD_REQUEST])
         .parse_json::<MfaInfo>()

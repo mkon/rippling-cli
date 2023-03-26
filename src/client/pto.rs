@@ -7,14 +7,14 @@ use super::Result;
 
 pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
     session
-        .post2(&format!("pto/api/get_holiday_calendar/"))
+        .post(&format!("pto/api/get_holiday_calendar/"))
         .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
         .parse_json()
 }
 
 pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
     session
-        .get2("pto/api/leave_requests/")
+        .get("pto/api/leave_requests/")
         .param("role", session.role().unwrap())
         .send()?
         .parse_json()

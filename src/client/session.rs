@@ -128,21 +128,21 @@ impl Session {
         self.role.as_ref().map(|s| s.as_str())
     }
 
-    pub fn get2(&self, path: &str) -> Request {
-        self.request2(Method::GET, path)
+    pub fn get(&self, path: &str) -> Request {
+        self.request(Method::GET, path)
     }
 
     pub fn get_json<J: DeserializeOwned>(&self, path: &str) -> Result<J> {
-        self.request2(Method::GET, path)
+        self.request(Method::GET, path)
             .send()?
             .parse_json::<J>()
     }
 
-    pub fn post2(&self, path: &str) -> Request {
-        self.request2(Method::POST, path)
+    pub fn post(&self, path: &str) -> Request {
+        self.request(Method::POST, path)
     }
 
-    fn request2(&self, method: Method, path: &str) -> Request {
+    fn request(&self, method: Method, path: &str) -> Request {
         let mut builder = Request::new(method, path).bearer_auth(&self.access_token);
         if let Some(value) = &self.company {
             builder = builder.header("company", value.to_owned());
