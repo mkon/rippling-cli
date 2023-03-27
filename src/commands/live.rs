@@ -1,3 +1,4 @@
+use std::time::Duration;
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
 use crate::client::{break_policy, time_entries};
@@ -6,9 +7,32 @@ use spinner_macro::spinner_wrap;
 #[spinner_wrap]
 pub fn status() -> Result<String> {
     Ok(match time_entries::current_entry(&super::get_session())? {
-        Some(entry) => format!("Clocked in since {}!", local_time_format(entry.start_time)),
+        Some(entry) => {
+            let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
+
+            let regular_hours_in_seconds = (entry.regular_hours * 3600.0) as u64;
+            let regular_hours_formatted = format_seconds_as_human_readable(regular_hours_in_seconds);
+
+            let total_duration_in_seconds = (entry.duration * 3600.0) as u64;
+            let breaks_in_seconds = total_duration_in_seconds - regular_hours_in_seconds;
+            let breaks_formatted = format_seconds_as_human_readable(breaks_in_seconds);
+
+            // Print regular hours and breaks
+            msg.push_str(&format!(
+                " (Regular hours: {}, Breaks: {})",
+                regular_hours_formatted,
+                breaks_formatted
+            ));
+
+            msg
+        }
         None => "Not clocked in!".to_owned(),
     })
+}
+
+fn format_seconds_as_human_readable(seconds: u64) -> String {
+    let breaks_duration = Duration::from_secs(seconds);
+    format!("{:02}h {:02}m", breaks_duration.as_secs() / 3600, (breaks_duration.as_secs() / 60) % 60)
 }
 
 #[spinner_wrap]
