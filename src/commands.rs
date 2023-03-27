@@ -106,11 +106,11 @@ pub fn execute(command: &Commands) {
 
     match command {
         Commands::Authenticate => authenticate(&cfg),
-        Commands::ClockIn => live::clock_in(),
-        Commands::ClockOut => live::clock_out(),
-        Commands::Status => live::status(),
-        Commands::StartBreak => live::start_break(),
-        Commands::EndBreak => live::end_break(),
+        Commands::ClockIn => live::clock_in_spinner(),
+        Commands::ClockOut => live::clock_out_spinner(),
+        Commands::Status => live::status_spinner(),
+        Commands::StartBreak => live::start_break_spinner(),
+        Commands::EndBreak => live::end_break_spinner(),
         Commands::Configure { command } => {
             match command {
                 ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
