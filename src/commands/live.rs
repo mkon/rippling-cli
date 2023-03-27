@@ -4,7 +4,7 @@ use crate::client::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
 
 #[spinner_wrap]
-fn status() -> Result<String> {
+pub fn status() -> Result<String> {
     Ok(match time_entries::current_entry(&super::get_session())? {
         Some(entry) => format!("Clocked in since {}!", local_time_format(entry.start_time)),
         None => "Not clocked in!".to_owned(),
@@ -12,7 +12,7 @@ fn status() -> Result<String> {
 }
 
 #[spinner_wrap]
-fn clock_in() -> Result<String> {
+pub fn clock_in() -> Result<String> {
     let entry = time_entries::start_clock(&super::get_session())?;
     Ok(format!("Clocked in since {}!", local_time_format(entry.start_time)))
 }
@@ -30,7 +30,7 @@ pub fn clock_out() -> Result<String> {
 }
 
 #[spinner_wrap]
-fn start_break() -> Result<String> {
+pub fn start_break() -> Result<String> {
     let session = super::get_session();
 
     match time_entries::current_entry(&session)? {
@@ -49,7 +49,7 @@ fn start_break() -> Result<String> {
 }
 
 #[spinner_wrap]
-fn end_break() -> Result<String> {
+pub fn end_break() -> Result<String> {
     let session = super::get_session();
 
     let current = time_entries::current_entry(&session)?;

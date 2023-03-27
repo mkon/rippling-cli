@@ -1,52 +1,49 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, parse_quote, punctuated::Punctuated, token::Comma, Expr};
 
 #[proc_macro_attribute]
 pub fn spinner_wrap(arg: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(arg as syn::AttributeArgs);
-    let org_fn = parse_macro_input!(item as syn::ItemFn);
-    let name = org_fn.sig.ident.clone();
-    let inputs = org_fn.sig.inputs.clone();
-    let transformed_params = transform_params(inputs.clone());
-    let converter = match args.first() {
-        Some(f) => quote! { |r| #f(r) },
-        None => quote! { |s| s },
+    let vfn = venial::parse_declaration(item.clone().into()).unwrap();
+    let mut out = item;
+
+    if let venial::Declaration::Function(f) = vfn {
+        out.extend(generate_wrapping_fn(f, arg.clone().to_string()));
+    }
+
+    return out;
+}
+
+fn generate_wrapping_fn(org_fn: venial::Function, conv: String) -> TokenStream {
+    let org_ident = org_fn.name;
+    let vis = org_fn.vis_marker;
+    let ident = format_ident!("{org_ident}_spinner");
+    let inputs = org_fn.params.clone();
+    let params = extract_params(inputs.clone());
+    let converter = if conv.is_empty() {
+        quote! { |s| s }
+    } else {
+        let ident = format_ident!("{conv}",);
+        quote! { |r| #ident(r) }
     };
-
-    let name_spinner = format_ident!("{}_spinner", name);
-    let expanded = quote! {
-        #org_fn
-
-        pub fn #name_spinner(#inputs) {
+    (quote! {
+        #vis fn #ident(#inputs) {
             crate::commands::wrap_in_spinner(
-                || #name #transformed_params,
+                || #org_ident(#params),
                 #converter
             )
         }
-    };
-
-    TokenStream::from(expanded)
+    })
+    .into()
 }
 
-// See https://stackoverflow.com/questions/71480280/how-do-i-pass-arguments-from-a-generated-function-to-another-function-in-a-proce
-fn transform_params(params: Punctuated<syn::FnArg, syn::token::Comma>) -> Expr {
-    // 1. Filter the params, so that only typed arguments remain
-    // 2. Extract the ident (in case the pattern type is ident)
-    let idents = params.iter().filter_map(|param| {
-        if let syn::FnArg::Typed(pat_type) = param {
-            if let syn::Pat::Ident(pat_ident) = *pat_type.pat.clone() {
-                return Some(pat_ident.ident);
-            }
+fn extract_params(args: venial::Punctuated<venial::FnParam>) -> venial::Punctuated<proc_macro2::Ident> {
+    let mut params: venial::Punctuated<proc_macro2::Ident> = venial::Punctuated::new();
+
+    for p in args.items() {
+        if let venial::FnParam::Typed(p) = p {
+            params.push(p.name.clone(), None);
         }
-        None
-    });
+    }
 
-    // Add all idents to a Punctuated => param1, param2, ...
-    let mut punctuated: Punctuated<syn::Ident, Comma> = Punctuated::new();
-    idents.for_each(|ident| punctuated.push(ident));
-
-    // Generate expression from Punctuated (and wrap with parentheses)
-    let transformed_params = parse_quote!((#punctuated));
-    transformed_params
+    params
 }
