@@ -51,11 +51,8 @@ pub enum Commands {
     /// Manually add entry for a day
     Manual(manual_entry::Command),
 
-    /// Request MFA
-    Mfa {
-        #[command(subcommand)]
-        command: mfa::Commands,
-    },
+    /// Multi Factor Authentication flows
+    Mfa(mfa::Command),
 }
 
 #[derive(Debug, Subcommand)]
@@ -119,7 +116,7 @@ pub fn execute(command: &Commands) {
             cfg.store();
         }
         Commands::Manual(cmd) => manual_entry::execute(cmd),
-        Commands::Mfa { command } => mfa::execute(command),
+        Commands::Mfa(command) => mfa::execute(command),
     };
 }
 
