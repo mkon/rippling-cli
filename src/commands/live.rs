@@ -17,6 +17,14 @@ pub fn status() -> Result<String> {
             let breaks_in_seconds = total_duration_in_seconds - regular_hours_in_seconds;
             let breaks_formatted = format_seconds_as_human_readable(breaks_in_seconds);
 
+            // If on break, print the break start time
+            if let Some(br) = entry.current_break() {
+                msg.push_str(&format!(
+                    ", started break at {}",
+                    local_time_format(br.start_time)
+                ));
+            }
+
             // Print regular hours and breaks
             msg.push_str(&format!(
                 " (Regular hours: {}, Breaks: {})",
