@@ -1,8 +1,8 @@
-use std::time::Duration;
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
 use crate::client::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
+use std::time::Duration;
 
 #[spinner_wrap]
 pub fn status() -> Result<String> {
@@ -19,17 +19,13 @@ pub fn status() -> Result<String> {
 
             // If on break, print the break start time
             if let Some(br) = entry.current_break() {
-                msg.push_str(&format!(
-                    ", started break at {}",
-                    local_time_format(br.start_time)
-                ));
+                msg.push_str(&format!(", started break at {}", local_time_format(br.start_time)));
             }
 
             // Print regular hours and breaks
             msg.push_str(&format!(
                 " (Regular hours: {}, Breaks: {})",
-                regular_hours_formatted,
-                breaks_formatted
+                regular_hours_formatted, breaks_formatted
             ));
 
             msg
@@ -40,7 +36,11 @@ pub fn status() -> Result<String> {
 
 fn format_seconds_as_human_readable(seconds: u64) -> String {
     let breaks_duration = Duration::from_secs(seconds);
-    format!("{:02}h {:02}m", breaks_duration.as_secs() / 3600, (breaks_duration.as_secs() / 60) % 60)
+    format!(
+        "{:02}h {:02}m",
+        breaks_duration.as_secs() / 3600,
+        (breaks_duration.as_secs() / 60) % 60
+    )
 }
 
 #[spinner_wrap]
