@@ -13,9 +13,8 @@ pub fn status() -> Result<String> {
             let regular_hours_in_seconds = (entry.regular_hours * 3600.0) as u64;
             let regular_hours_formatted = format_seconds_as_human_readable(regular_hours_in_seconds);
 
-            let total_duration_in_seconds = (entry.duration * 3600.0) as u64;
-            let breaks_in_seconds = total_duration_in_seconds - regular_hours_in_seconds;
-            let breaks_formatted = format_seconds_as_human_readable(breaks_in_seconds);
+            let unpaid_break_hours_in_seconds = (entry.unpaid_break_hours * 3600.0) as u64;
+            let unpaid_break_hours_formatted = format_seconds_as_human_readable(unpaid_break_hours_in_seconds);
 
             // If on break, print the break start time
             if let Some(br) = entry.current_break() {
@@ -25,7 +24,7 @@ pub fn status() -> Result<String> {
             // Print regular hours and breaks
             msg.push_str(&format!(
                 " (Regular hours: {}, Breaks: {})",
-                regular_hours_formatted, breaks_formatted
+                regular_hours_formatted, unpaid_break_hours_formatted
             ));
 
             msg
