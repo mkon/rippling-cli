@@ -2,7 +2,6 @@ use super::{format_hours, local_time_format};
 use super::{Error, Result};
 use crate::client::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
-use std::time::Duration;
 
 #[spinner_wrap]
 pub fn status() -> Result<String> {
@@ -10,18 +9,14 @@ pub fn status() -> Result<String> {
         Some(entry) => {
             let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
 
-            let regular_hours_in_seconds = (entry.regular_hours * 3600.0) as u64;
-            let regular_hours_formatted = format_seconds_as_human_readable(regular_hours_in_seconds);
-
-            let unpaid_break_hours_in_seconds = (entry.unpaid_break_hours * 3600.0) as u64;
-            let unpaid_break_hours_formatted = format_seconds_as_human_readable(unpaid_break_hours_in_seconds);
-
             // If on break, print the break start time
             if let Some(br) = entry.current_break() {
                 msg.push_str(&format!(", started break at {}", local_time_format(br.start_time)));
             }
 
             // Print regular hours and breaks
+            let regular_hours_formatted = format_hours(entry.regular_hours);
+            let unpaid_break_hours_formatted = format_hours(entry.unpaid_break_hours);
             msg.push_str(&format!(
                 " (Regular hours: {}, Breaks: {})",
                 regular_hours_formatted, unpaid_break_hours_formatted
@@ -31,15 +26,6 @@ pub fn status() -> Result<String> {
         }
         None => "Not clocked in!".to_owned(),
     })
-}
-
-fn format_seconds_as_human_readable(seconds: u64) -> String {
-    let breaks_duration = Duration::from_secs(seconds);
-    format!(
-        "{:02}h {:02}m",
-        breaks_duration.as_secs() / 3600,
-        (breaks_duration.as_secs() / 60) % 60
-    )
 }
 
 #[spinner_wrap]
