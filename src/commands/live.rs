@@ -94,7 +94,7 @@ pub fn end_break() -> Result<String> {
                 let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
                 Ok(format!(
                     "Stopped break at {}, after {} hours!",
-                    local_time_format(br.end_time.unwrap()),
+                    local_time_format(brk.end_time.unwrap()),
                     format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
                 ))
             }

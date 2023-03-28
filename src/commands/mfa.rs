@@ -1,40 +1,41 @@
-use clap::Subcommand;
-use spinner_macro::spinner_wrap;
-
 use crate::client;
+use clap::{Parser, Subcommand};
 
-use super::Result;
+#[derive(Debug, Parser)]
+pub struct Command {
+    #[command(subcommand)]
+    pub facility: Facility,
+}
 
 #[derive(Debug, Subcommand)]
-pub enum Commands {
-    Request { auth_option: String },
-    Submit { auth_option: String, code: String },
-    Token { code: String },
+pub enum Facility {
+    /// For use with a token generator like Google Authenticator
+    Token,
+    /// Enter the code which will be sent to your email address
+    Email,
+    /// Enter the code which will be sent to your Phone (SMS)
+    Mobile,
 }
 
-pub fn execute(cmd: &Commands) {
-    match cmd {
-        Commands::Request { auth_option } => request_spinner(&auth_option),
-        Commands::Submit { auth_option, code } => submit_spinner(&auth_option, &code),
-        Commands::Token { code } => token_spinner(&code),
+pub fn execute(cmd: &Command) {
+    match cmd.facility {
+        Facility::Token => token_flow(),
+        Facility::Email => request_flow("EMAIL"),
+        Facility::Mobile => request_flow("PHONE_TEXT"),
     }
 }
 
-#[spinner_wrap]
-fn request(auth_option: &str) -> Result<String> {
-    Ok(client::mfa::request(&super::get_session(), auth_option)?.message)
+fn request_flow(facility: &str) {
+    let session = &super::get_session();
+    super::wrap_in_spinner(|| client::mfa::request(session, facility), |r| r.message);
+    let code = super::ask_user_input("Enter the code");
+    super::wrap_in_spinner(|| client::mfa::submit(session, facility, &code), |r| r.message);
 }
 
-#[spinner_wrap]
-fn submit(auth_option: &str, code: &str) -> Result<String> {
-    Ok(client::mfa::submit(&super::get_session(), auth_option, code)?.message)
-}
-
-#[spinner_wrap]
-fn token(code: &str) -> Result<String> {
-    let res = client::mfa::token(&super::get_session(), code)?;
-    match res {
-        true => Ok("Code valid".into()),
-        false => Ok("Code invalid".into()),
-    }
+fn token_flow() {
+    let code = super::ask_user_input("Enter the code");
+    super::wrap_in_spinner(
+        || client::mfa::token(&super::get_session(), &code),
+        |r| if r { "Code valid".into() } else { "Code invalid".into() },
+    )
 }
