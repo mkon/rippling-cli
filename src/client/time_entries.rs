@@ -92,6 +92,8 @@ pub struct TimeEntry {
     pub breaks: Vec<TimeEntryBreak>,
     #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
     pub regular_hours: f32,
+    #[serde(rename = "unpaidBreakHours", deserialize_with = "f32_from_str")]
+    pub unpaid_break_hours: f32,
     // pub timezone: String,
 }
 
