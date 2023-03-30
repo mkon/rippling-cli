@@ -192,12 +192,19 @@ where
     Ok: FnOnce(T) -> String,
     Er: FnOnce(E) -> String,
 {
-    let s = ProgressBar::new_spinner();
-    s.set_message("Connecting with rippling...");
-    s.enable_steady_tick(Duration::new(0, 100_000_000));
-    match f() {
-        Ok(t) => s.finish_with_message(ok(t)),
-        Err(e) => s.finish_with_message(er(e)),
+    if super::INTERACTIVE.into_inner() {
+        let s = ProgressBar::new_spinner();
+        s.set_message("Connecting with rippling...");
+        s.enable_steady_tick(Duration::new(0, 100_000_000));
+        match f() {
+            Ok(t) => s.finish_with_message(ok(t)),
+            Err(e) => s.finish_with_message(er(e)),
+        }
+    } else {
+        match f() {
+            Ok(t) => println!("{}", ok(t)),
+            Err(e) => println!("{}", er(e)),
+        }
     }
 }
 

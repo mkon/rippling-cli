@@ -1,11 +1,16 @@
 mod commands;
 mod persistence;
 
-use std::fs::File;
+use std::{
+    fs::File,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use clap::Parser;
 use commands::Commands;
 use directories::ProjectDirs;
+
+static INTERACTIVE: AtomicBool = AtomicBool::new(true);
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -17,6 +22,7 @@ struct Cli {
 fn main() {
     init_logging();
     let cli = Cli::parse();
+    INTERACTIVE.store(console::user_attended(), Ordering::Relaxed);
     commands::execute(&cli.command)
 }
 
