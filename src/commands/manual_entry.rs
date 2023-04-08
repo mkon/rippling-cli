@@ -1,12 +1,11 @@
 use clap::{arg, Parser};
 use regex::Regex;
-use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
 use super::{
+    ask_user_input,
     pto::{self, CheckOutcome},
-    Result,
 };
 
 use crate::client::{
@@ -30,6 +29,9 @@ pub struct Command {
     /// Before submitting check for overlap with holidays, weekends or PTO
     #[arg(short, long)]
     pub check: bool,
+    /// Bypass prompt with a yes answer
+    #[arg(short, long)]
+    pub yes: bool,
     #[arg(value_parser = parse_input_shifts)]
     pub ranges: Vec<TimeRange>,
 }
@@ -38,11 +40,10 @@ pub fn execute(cmd: &Command) {
     let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
-    create_entry_spinner(date, &cmd.ranges, cmd.check)
+    create_entry(date, &cmd.ranges, cmd.check)
 }
 
-#[spinner_wrap(entry_to_string)]
-fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEntry> {
+fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) {
     let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, client::Error> {
         let session = super::get_session();
         let policy = break_policy::active_policy(&session)?;
@@ -52,10 +53,11 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<Time
     let session = super::get_session();
 
     if check {
-        let pto = pto::check(date)?;
+        let pto = pto::check(date).unwrap();
         if let CheckOutcome::WorkingDay = pto {
         } else {
-            return Err(super::Error::NoWorkingDay(pto));
+            println!("{}", super::Error::NoWorkingDay(pto));
+            return;
         }
     }
 
@@ -77,13 +79,19 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<Time
     let end_time = events.pop().unwrap();
     entry.add_shift(start_time, end_time);
 
-    let break_policy = policy_thread.join().unwrap()?;
+    let break_policy = policy_thread.join().unwrap().unwrap();
     let btype = break_policy.manual_break_type().unwrap();
     for pair in events.chunks(2) {
         entry.add_break(btype.id.to_owned(), pair[0], pair[1]);
     }
 
-    Ok(client::time_entries::create_entry(&session, &entry)?)
+    let x = ask_user_input(format!("Create entry {}?", entry).as_ref());
+    if x == "y" {
+        super::wrap_in_spinner(
+            || client::time_entries::create_entry(&session, &entry),
+            |entry| entry_to_string(entry),
+        );
+    }
 }
 
 fn entry_to_string(entry: TimeEntry) -> String {

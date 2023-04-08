@@ -1,6 +1,7 @@
 use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
+use time::macros::format_description;
 use time::{Duration, OffsetDateTime};
 
 use time::serde::rfc3339;
@@ -60,6 +61,35 @@ pub struct NewTimeEntry {
     pub shifts: Vec<NewTimeEntryShift>,
     pub breaks: Vec<NewTimeEntryBreak>,
     source: String,
+}
+
+impl std::fmt::Display for NewTimeEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let date_fmt = format_description!("[weekday repr:short] [day] [month repr:short]");
+        let time_fmt = format_description!("[hour]:[minute]");
+        let shift = self.shifts.first().unwrap();
+        let date = shift.start_time.date();
+        let mut out = format!("{} {}-{}",
+            date.format(date_fmt).unwrap(),
+            shift.start_time.format(time_fmt).unwrap(),
+            shift.end_time.format(time_fmt).unwrap()
+        );
+        if self.breaks.len() > 0 {
+            let sum = self.breaks.iter().fold(
+                String::new(),
+                |mut a, b| {
+                    if a.len() > 0 { a.push_str(", ") }
+                    a.push_str(&format!("{}-{}",
+                        b.start_time.format(time_fmt).unwrap(),
+                        b.end_time.format(time_fmt).unwrap()
+                    ));
+                    a
+                }
+            );
+            out.push_str(&format!(" (Breaks {sum})"));
+        }
+        write!(f, "{out}")
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
