@@ -86,14 +86,14 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
     }
 
     if yes {
-        submit_entry(&session, entry).unwrap();
+        submit_entry_spinner(&session, entry);
     } else {
         if Confirm::new()
             .with_prompt(&format!("Create entry {}?", entry))
             .interact()
             .unwrap()
         {
-            submit_entry(&session, entry).unwrap();
+            submit_entry_spinner(&session, entry);
         }
     }
 }
@@ -103,7 +103,6 @@ fn submit_entry(session: &Session, entry: NewTimeEntry) -> super::Result<TimeEnt
     Ok(client::time_entries::create_entry(&session, &entry)?)
 }
 
-#[allow(dead_code)]
 fn entry_to_string(entry: TimeEntry) -> String {
     format!(
         "Added entry from {} to {}",
