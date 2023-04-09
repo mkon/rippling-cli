@@ -6,7 +6,8 @@ pub mod pto;
 use std::io;
 
 use clap::Subcommand;
-use spinners::{Spinner, Spinners};
+use core::time::Duration;
+use indicatif::ProgressBar;
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::{
@@ -178,10 +179,12 @@ where
     Ok: FnOnce(T) -> String,
     Er: FnOnce(E) -> String,
 {
-    let mut sp = Spinner::new(Spinners::Dots9, String::from("Connecting with rippling"));
+    let s = ProgressBar::new_spinner();
+    s.set_message("Connecting with rippling...");
+    s.enable_steady_tick(Duration::new(0, 100_000_000));
     match f() {
-        Ok(t) => sp.stop_with_message(ok(t)),
-        Err(e) => sp.stop_with_message(er(e)),
+        Ok(t) => s.finish_with_message(ok(t)),
+        Err(e) => s.finish_with_message(er(e)),
     }
 }
 

@@ -1,13 +1,11 @@
 use clap::{arg, Parser};
+use dialoguer::Confirm;
 use regex::Regex;
 use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
-use super::{
-    ask_user_input,
-    pto::{self, CheckOutcome},
-};
+use super::pto::{self, CheckOutcome};
 
 use crate::client::{
     self,
@@ -90,8 +88,11 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
     if yes {
         submit_entry(&session, entry).unwrap();
     } else {
-        let x = ask_user_input(format!("Create entry {}?", entry).as_ref());
-        if x == "y" {
+        if Confirm::new()
+            .with_prompt(&format!("Create entry {}?", entry))
+            .interact()
+            .unwrap()
+        {
             submit_entry(&session, entry).unwrap();
         }
     }
