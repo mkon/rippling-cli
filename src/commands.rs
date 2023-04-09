@@ -3,10 +3,11 @@ pub mod manual_entry;
 pub mod mfa;
 pub mod pto;
 
-use std::io;
-
 use clap::Subcommand;
-use spinners::{Spinner, Spinners};
+use console::Term;
+use core::time::Duration;
+use dialoguer::{Input, Password};
+use indicatif::ProgressBar;
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::{
@@ -122,10 +123,13 @@ pub fn execute(command: &Commands) {
 
 fn authenticate(cfg: &Settings) {
     let username = match &cfg.username {
-        None => ask_user_input("Enter your user name"),
+        None => Input::new()
+            .with_prompt("Enter your user name")
+            .interact_text()
+            .unwrap(),
         Some(value) => value.clone(),
     };
-    let password = ask_user_input("Enter your password");
+    let password = Password::new().with_prompt("Enter your password").interact().unwrap();
 
     let client = client::PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
@@ -133,16 +137,12 @@ fn authenticate(cfg: &Settings) {
             let info = client::account_info::fetch(&session).expect("Failed to query account info");
             session.set_company_and_role(info.role.company.id, info.id);
             session.save();
+            Term::stdout().write_line("Authentication successfull").unwrap();
         }
-        _ => println!("Authentication failed"),
+        _ => {
+            Term::stderr().write_line("Authentication failed!").unwrap();
+        }
     }
-}
-
-fn ask_user_input(prompt: &str) -> String {
-    println!("> {prompt}");
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read input");
-    input.trim().to_owned()
 }
 
 fn get_session() -> Session {
@@ -178,10 +178,12 @@ where
     Ok: FnOnce(T) -> String,
     Er: FnOnce(E) -> String,
 {
-    let mut sp = Spinner::new(Spinners::Dots9, String::from("Connecting with rippling"));
+    let s = ProgressBar::new_spinner();
+    s.set_message("Connecting with rippling...");
+    s.enable_steady_tick(Duration::new(0, 100_000_000));
     match f() {
-        Ok(t) => sp.stop_with_message(ok(t)),
-        Err(e) => sp.stop_with_message(er(e)),
+        Ok(t) => s.finish_with_message(ok(t)),
+        Err(e) => s.finish_with_message(er(e)),
     }
 }
 

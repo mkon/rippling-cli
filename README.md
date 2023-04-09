@@ -61,11 +61,12 @@ Manually add entry for a day
 Usage: rippling-cli manual [OPTIONS] [RANGES]...
 
 Arguments:
-  [RANGES]...
+  [RANGES]...  
 
 Options:
   -d, --days-ago <DAYS_AGO>  Defaults to 0 (today)
   -c, --check                Before submitting check for overlap with holidays, weekends or PTO
+  -y, --yes                  Bypass prompt with a yes answer
   -h, --help                 Print help
 ```
 

@@ -1,9 +1,10 @@
 use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
-use time::{Duration, OffsetDateTime};
-
+use time::format_description::FormatItem;
+use time::macros::format_description;
 use time::serde::rfc3339;
+use time::{Duration, OffsetDateTime};
 
 use super::session::Session;
 use super::Result;
@@ -60,6 +61,42 @@ pub struct NewTimeEntry {
     pub shifts: Vec<NewTimeEntryShift>,
     pub breaks: Vec<NewTimeEntryBreak>,
     source: String,
+}
+
+const DATE_FMT: &[FormatItem] = format_description!("[weekday repr:short] [day] [month repr:short]");
+const TIME_FMT: &[FormatItem] = format_description!("[hour]:[minute]");
+
+impl NewTimeEntry {
+    fn render_breaks(&self) -> String {
+        self.breaks.iter().fold(String::new(), |mut a, b| {
+            if a.len() > 0 {
+                a.push_str(", ")
+            }
+            a.push_str(&format!(
+                "{}-{}",
+                b.start_time.format(TIME_FMT).unwrap(),
+                b.end_time.format(TIME_FMT).unwrap()
+            ));
+            a
+        })
+    }
+}
+
+impl std::fmt::Display for NewTimeEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let shift = self.shifts.first().unwrap();
+        let date = shift.start_time.date();
+        let mut out = format!(
+            "{} {}-{}",
+            date.format(DATE_FMT).unwrap(),
+            shift.start_time.format(TIME_FMT).unwrap(),
+            shift.end_time.format(TIME_FMT).unwrap()
+        );
+        if self.breaks.len() > 0 {
+            out.push_str(&format!(" (Breaks {})", self.render_breaks()));
+        }
+        write!(f, "{out}")
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -122,13 +159,12 @@ impl NewTimeEntry {
     }
 
     pub fn add_shift(&mut self, start_time: OffsetDateTime, end_time: OffsetDateTime) {
-        self.shifts
-            .push(NewTimeEntryShift { start_time: start_time, end_time: end_time });
+        self.shifts.push(NewTimeEntryShift { start_time, end_time });
     }
 
     pub fn add_break(&mut self, break_type: String, start_time: OffsetDateTime, end_time: OffsetDateTime) {
         self.breaks
-            .push(NewTimeEntryBreak { break_type_id: break_type, start_time: start_time, end_time: end_time });
+            .push(NewTimeEntryBreak { break_type_id: break_type, start_time, end_time });
     }
 }
 
