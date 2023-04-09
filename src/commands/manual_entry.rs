@@ -182,7 +182,7 @@ mod tests {
 
         let _m1 = mocking::mock_active_policy();
         let _m2 = mocking::mock_break_policy("some-break-policy-id");
-        let m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
+        let m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "entry_closed")
             .with_status(201)
             .match_body(mocking::Matcher::Json(json!(
                 {
