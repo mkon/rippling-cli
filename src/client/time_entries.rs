@@ -1,10 +1,10 @@
 use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
+use time::format_description::FormatItem;
 use time::macros::format_description;
-use time::{Duration, OffsetDateTime};
-
 use time::serde::rfc3339;
+use time::{Duration, OffsetDateTime};
 
 use super::session::Session;
 use super::Result;
@@ -63,30 +63,37 @@ pub struct NewTimeEntry {
     source: String,
 }
 
+const DATE_FMT: &[FormatItem] = format_description!("[weekday repr:short] [day] [month repr:short]");
+const TIME_FMT: &[FormatItem] = format_description!("[hour]:[minute]");
+
+impl NewTimeEntry {
+    fn render_breaks(&self) -> String {
+        self.breaks.iter().fold(String::new(), |mut a, b| {
+            if a.len() > 0 {
+                a.push_str(", ")
+            }
+            a.push_str(&format!(
+                "{}-{}",
+                b.start_time.format(TIME_FMT).unwrap(),
+                b.end_time.format(TIME_FMT).unwrap()
+            ));
+            a
+        })
+    }
+}
+
 impl std::fmt::Display for NewTimeEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let date_fmt = format_description!("[weekday repr:short] [day] [month repr:short]");
-        let time_fmt = format_description!("[hour]:[minute]");
         let shift = self.shifts.first().unwrap();
         let date = shift.start_time.date();
-        let mut out = format!("{} {}-{}",
-            date.format(date_fmt).unwrap(),
-            shift.start_time.format(time_fmt).unwrap(),
-            shift.end_time.format(time_fmt).unwrap()
+        let mut out = format!(
+            "{} {}-{}",
+            date.format(DATE_FMT).unwrap(),
+            shift.start_time.format(TIME_FMT).unwrap(),
+            shift.end_time.format(TIME_FMT).unwrap()
         );
         if self.breaks.len() > 0 {
-            let sum = self.breaks.iter().fold(
-                String::new(),
-                |mut a, b| {
-                    if a.len() > 0 { a.push_str(", ") }
-                    a.push_str(&format!("{}-{}",
-                        b.start_time.format(time_fmt).unwrap(),
-                        b.end_time.format(time_fmt).unwrap()
-                    ));
-                    a
-                }
-            );
-            out.push_str(&format!(" (Breaks {sum})"));
+            out.push_str(&format!(" (Breaks {})", self.render_breaks()));
         }
         write!(f, "{out}")
     }
@@ -152,13 +159,12 @@ impl NewTimeEntry {
     }
 
     pub fn add_shift(&mut self, start_time: OffsetDateTime, end_time: OffsetDateTime) {
-        self.shifts
-            .push(NewTimeEntryShift { start_time: start_time, end_time: end_time });
+        self.shifts.push(NewTimeEntryShift { start_time, end_time });
     }
 
     pub fn add_break(&mut self, break_type: String, start_time: OffsetDateTime, end_time: OffsetDateTime) {
         self.breaks
-            .push(NewTimeEntryBreak { break_type_id: break_type, start_time: start_time, end_time: end_time });
+            .push(NewTimeEntryBreak { break_type_id: break_type, start_time, end_time });
     }
 }
 
