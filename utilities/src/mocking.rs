@@ -8,13 +8,24 @@ pub fn rippling(method: &str, path: &str) -> Mock {
 }
 
 pub fn with_fixture(method: &str, path: &str, fixture: &str) -> Mock {
-    rippling(method, path).with_body_from_file(format!("tests/fixtures/{fixture}.json"))
+    let file = format!("{}/fixtures/{fixture}.json", env!("CARGO_MANIFEST_DIR"));
+    rippling(method, path).with_body_from_file(file)
 }
 
 pub fn mock_active_policy() -> Mock {
-    with_fixture("GET", "/time_tracking/api/time_entry_policies/get_active_policy", "active_policy").create()
+    with_fixture(
+        "GET",
+        "/time_tracking/api/time_entry_policies/get_active_policy",
+        "active_policy",
+    )
+    .create()
 }
 
 pub fn mock_break_policy(id: &str) -> Mock {
-    with_fixture("GET", &format!("/time_tracking/api/time_entry_break_policies/{id}"), "break_policy").create()
+    with_fixture(
+        "GET",
+        &format!("/time_tracking/api/time_entry_break_policies/{id}"),
+        "break_policy",
+    )
+    .create()
 }
