@@ -144,7 +144,7 @@ fn authenticate(cfg: &Settings) {
 }
 
 fn get_session() -> Session {
-    #[cfg(any(not(test), rust_analyzer))]
+    #[cfg(not(test))]
     let session = {
         let state = crate::persistence::State::load();
         let mut s = Session::new(None, state.access_token.unwrap());
@@ -152,7 +152,7 @@ fn get_session() -> Session {
         s.role = state.role_id;
         s
     };
-    #[cfg(all(test, not(rust_analyzer)))]
+    #[cfg(test)]
     let session = {
         let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
         let mut s = Session::new(Some(url), "access-token".into());
@@ -192,7 +192,7 @@ where
     Ok: FnOnce(T) -> String,
     Er: FnOnce(E) -> String,
 {
-    if super::INTERACTIVE.into_inner() {
+    if super::INTERACTIVE.load(std::sync::atomic::Ordering::Relaxed) {
         let s = ProgressBar::new_spinner();
         s.set_message("Connecting with rippling...");
         s.enable_steady_tick(Duration::new(0, 100_000_000));
