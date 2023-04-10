@@ -1,5 +1,5 @@
 use clap::{arg, Parser};
-use dialoguer::Confirm;
+use inquire::Confirm;
 use regex::Regex;
 use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
@@ -89,11 +89,7 @@ fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
     if yes {
         submit_entry_spinner(&session, entry);
     } else {
-        if Confirm::new()
-            .with_prompt(&format!("Create entry {}?", entry))
-            .interact()
-            .unwrap()
-        {
+        if Confirm::new(&format!("Create entry {}?", entry)).prompt().unwrap() {
             submit_entry_spinner(&session, entry);
         }
     }

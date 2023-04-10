@@ -22,7 +22,7 @@ struct Cli {
 fn main() {
     init_logging();
     let cli = Cli::parse();
-    INTERACTIVE.store(console::user_attended(), Ordering::Relaxed);
+    INTERACTIVE.store(atty::is(atty::Stream::Stdout), Ordering::Relaxed);
     commands::execute(&cli.command)
 }
 

@@ -6,19 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+atty = "0.2.14"
 clap = { version = "4.0.32", features = ["derive"] }
+# console = "0.15.5"
 confy = "0.5.1"
-console = "0.15.5"
-dialoguer = "0.10.4"
 directories = "5.0.0"
 env_logger = "0.10.0"
 indicatif = "0.17.3"
+inquire = "0.6.1"
 log = "0.4.17"
 regex = "1.7.1"
+rippling-api = { path = "../api" }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
 spinner_macro = { path = "../spinner_macro" }
-rippling-api = { path = "../api" }
 time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
 tzdb = "0.5.3"
 url = "2.3.1"
