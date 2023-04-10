@@ -4,7 +4,6 @@ pub mod mfa;
 pub mod pto;
 
 use clap::Subcommand;
-use console::Term;
 use core::time::Duration;
 use indicatif::ProgressBar;
 use inquire::{Password, Text};
@@ -129,16 +128,17 @@ fn authenticate(cfg: &Settings) {
         .prompt()
         .unwrap();
 
+    let s = start_spinner();
     let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
         Ok(mut session) => {
             let info = rippling_api::account_info::fetch(&session).expect("Failed to query account info");
             session.set_company_and_role(info.role.company.id, info.id);
             save_session(&session);
-            Term::stdout().write_line("Authentication successfull").unwrap();
+            s.finish_with_message("Authentication successfull");
         }
         _ => {
-            Term::stderr().write_line("Authentication failed!").unwrap();
+            s.finish_with_message("Authentication failed!");
         }
     }
 }
@@ -186,6 +186,13 @@ where
     wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
 }
 
+fn with_spinner<R, F: FnOnce() -> R>(f: F) -> R {
+    let s = start_spinner();
+    let res = f();
+    s.finish_and_clear();
+    res
+}
+
 fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)
 where
     Fn: FnOnce() -> std::result::Result<T, E>,
@@ -193,9 +200,7 @@ where
     Er: FnOnce(E) -> String,
 {
     if super::INTERACTIVE.load(std::sync::atomic::Ordering::Relaxed) {
-        let s = ProgressBar::new_spinner();
-        s.set_message("Connecting with rippling...");
-        s.enable_steady_tick(Duration::new(0, 100_000_000));
+        let s = start_spinner();
         match f() {
             Ok(t) => s.finish_with_message(ok(t)),
             Err(e) => s.finish_with_message(er(e)),
@@ -206,6 +211,13 @@ where
             Err(e) => println!("{}", er(e)),
         }
     }
+}
+
+fn start_spinner() -> ProgressBar {
+    let s = ProgressBar::new_spinner();
+    s.set_message("Connecting with rippling...");
+    s.enable_steady_tick(Duration::new(0, 100_000_000));
+    s
 }
 
 fn format_hours(hours: f32) -> String {

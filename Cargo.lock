@@ -998,9 +998,9 @@ dependencies = [
 name = "rippling-cli"
 version = "0.3.1"
 dependencies = [
+ "atty",
  "clap",
  "confy",
- "console",
  "directories 5.0.0",
  "env_logger",
  "indicatif",
