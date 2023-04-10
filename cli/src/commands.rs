@@ -6,8 +6,8 @@ pub mod pto;
 use clap::Subcommand;
 use console::Term;
 use core::time::Duration;
-use dialoguer::{Input, Password};
 use indicatif::ProgressBar;
+use inquire::{Password, Text};
 use rippling_api::{self, time_entries::TimeEntryBreak, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
@@ -121,13 +121,13 @@ pub fn execute(command: &Commands) {
 
 fn authenticate(cfg: &Settings) {
     let username = match &cfg.username {
-        None => Input::new()
-            .with_prompt("Enter your user name")
-            .interact_text()
-            .unwrap(),
+        None => Text::new("Enter your user name").prompt().unwrap(),
         Some(value) => value.clone(),
     };
-    let password = Password::new().with_prompt("Enter your password").interact().unwrap();
+    let password = Password::new("Enter your password")
+        .without_confirmation()
+        .prompt()
+        .unwrap();
 
     let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {

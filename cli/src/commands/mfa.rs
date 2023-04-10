@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use dialoguer::Input;
+use inquire::Text;
 use rippling_api::mfa;
 
 #[derive(Debug, Parser)]
@@ -42,5 +42,5 @@ fn token_flow() {
 }
 
 fn request_code() -> String {
-    Input::new().with_prompt("Enter the code").interact_text().unwrap()
+    Text::new("Enter the code").prompt().unwrap()
 }

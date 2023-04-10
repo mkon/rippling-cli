@@ -9,7 +9,6 @@ edition = "2021"
 clap = { version = "4.0.32", features = ["derive"] }
 confy = "0.5.1"
 console = "0.15.5"
-dialoguer = "0.10.4"
 directories = "5.0.0"
 env_logger = "0.10.0"
 indicatif = "0.17.3"
@@ -22,6 +21,7 @@ rippling-api = { path = "../api" }
 time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
 tzdb = "0.5.3"
 url = "2.3.1"
+inquire = "0.6.1"
 
 [dev-dependencies]
 utilities = { path = "../utilities" }
