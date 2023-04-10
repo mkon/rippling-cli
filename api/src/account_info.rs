@@ -35,17 +35,11 @@ mod tests {
     use super::*;
     use utilities::mocking;
 
-    fn session() -> Session {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
-        session
-    }
-
     #[test]
     fn it_can_fetch_account_info() {
         let _m = mocking::with_fixture("GET", "/auth_ext/get_account_info", "account_info").create();
 
-        let info = fetch(&session()).unwrap();
+        let info = fetch(&crate::session::test_session()).unwrap();
         assert_eq!(info.role.company.id, "some-company-id");
         assert_eq!(info.id, "my-role-id");
     }

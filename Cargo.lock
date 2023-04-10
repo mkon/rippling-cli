@@ -886,10 +886,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
+name = "rippling-api"
+version = "0.1.0"
+dependencies = [
+ "attohttpc",
+ "json_value_merge",
+ "regex",
+ "serde",
+ "serde_json",
+ "time",
+ "url",
+ "utilities",
+]
+
+[[package]]
 name = "rippling-cli"
 version = "0.3.1"
 dependencies = [
- "attohttpc",
  "clap",
  "confy",
  "console",
@@ -897,9 +910,9 @@ dependencies = [
  "directories 5.0.0",
  "env_logger",
  "indicatif",
- "json_value_merge",
  "log",
  "regex",
+ "rippling-api",
  "serde",
  "serde_json",
  "spinner_macro",

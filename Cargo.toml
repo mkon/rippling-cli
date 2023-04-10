@@ -1,28 +1,10 @@
-[package]
-name = "rippling-cli"
-version = "0.3.1"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+members = [
+    "api",
+    "cli",
+    "spinner_macro",
+    "utilities",
+]
 
-[dependencies]
-attohttpc = { version = "0.24.1", features = ["basic-auth", "json"] }
-clap = { version = "4.0.32", features = ["derive"] }
-confy = "0.5.1"
-console = "0.15.5"
-dialoguer = "0.10.4"
-directories = "5.0.0"
-env_logger = "0.10.0"
-indicatif = "0.17.3"
-json_value_merge = "1.1.2"
-log = "0.4.17"
-regex = "1.7.1"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.91"
-spinner_macro = { path = "spinner_macro" }
-time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
-tzdb = "0.5.3"
-url = "2.3.1"
-
-[dev-dependencies]
-utilities = { path = "utilities" }
+default-members = ["api", "cli"]

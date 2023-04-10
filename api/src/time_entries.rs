@@ -197,12 +197,6 @@ mod tests {
     use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
     use utilities::mocking;
 
-    fn session() -> Session {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
-        session
-    }
-
     #[test]
     fn it_can_create_entries() {
         let mut new_entry = NewTimeEntry::new();
@@ -237,7 +231,7 @@ mod tests {
             )))
             .create();
 
-        let entry = create_entry(&session(), &new_entry);
+        let entry = create_entry(&crate::session::test_session(), &new_entry);
         assert!(entry.is_ok());
         m.assert();
     }
@@ -246,7 +240,7 @@ mod tests {
     fn it_can_fetch_current_entry() {
         let _m = mocking::with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
 
-        let entry = current_entry(&session()).unwrap().unwrap();
+        let entry = current_entry(&crate::session::test_session()).unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
@@ -266,7 +260,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = start_clock(&session()).unwrap();
+        let entry = start_clock(&crate::session::test_session()).unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -281,7 +275,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = end_clock(&session(), &"id").unwrap();
+        let entry = end_clock(&crate::session::test_session(), &"id").unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -298,7 +292,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        start_break(&session(), &"id", &"break-type-id").unwrap();
+        start_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 
@@ -312,7 +306,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        end_break(&session(), &"id", &"break-type-id").unwrap();
+        end_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 }

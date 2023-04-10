@@ -49,6 +49,7 @@ impl ::std::default::Default for State {
 impl State {
     const CONFIG_NAME: &str = "state";
 
+    #[allow(dead_code)]
     pub fn load() -> Self {
         load::<Self>(Self::CONFIG_NAME)
     }
