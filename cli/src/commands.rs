@@ -8,12 +8,11 @@ use console::Term;
 use core::time::Duration;
 use dialoguer::{Input, Password};
 use indicatif::ProgressBar;
+use rippling_api::{self, time_entries::TimeEntryBreak, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
+use url::Url;
 
-use crate::{
-    client::{self, time_entries::TimeEntryBreak, Session},
-    persistence::Settings,
-};
+use crate::persistence::Settings;
 
 use self::pto::CheckOutcome;
 
@@ -65,7 +64,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    ApiError(client::Error),
+    ApiError(rippling_api::Error),
     AlreadyOnBreak(TimeEntryBreak),
     NotClockedIn,
     NotOnBreak,
@@ -93,8 +92,8 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl From<client::Error> for Error {
-    fn from(value: client::Error) -> Self {
+impl From<rippling_api::Error> for Error {
+    fn from(value: rippling_api::Error) -> Self {
         Error::ApiError(value)
     }
 }
@@ -131,12 +130,12 @@ fn authenticate(cfg: &Settings) {
     };
     let password = Password::new().with_prompt("Enter your password").interact().unwrap();
 
-    let client = client::PublicClient::initialize_from_remote().unwrap();
+    let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
         Ok(mut session) => {
-            let info = client::account_info::fetch(&session).expect("Failed to query account info");
+            let info = rippling_api::account_info::fetch(&session).expect("Failed to query account info");
             session.set_company_and_role(info.role.company.id, info.id);
-            session.save();
+            save_session(&session);
             Term::stdout().write_line("Authentication successfull").unwrap();
         }
         _ => {
@@ -147,14 +146,31 @@ fn authenticate(cfg: &Settings) {
 
 fn get_session() -> Session {
     #[cfg(not(test))]
-    let session = Session::load();
+    let session = {
+        let url = Url::parse("https://app.rippling.com/api/").unwrap();
+        let state = crate::persistence::State::load();
+        let mut s = Session::new(url, state.access_token.unwrap());
+        s.company = state.company_id;
+        s.role = state.role_id;
+        s
+    };
     #[cfg(test)]
     let session = {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("company-id".into(), "my-role-id".into());
-        session
+        let url = Url::parse(&utilities::mocking::server_url()).unwrap();
+        let mut s = Session::new(url, "access-token".into());
+        s.set_company_and_role("company-id".into(), "my-role-id".into());
+        s
     };
     session
+}
+
+fn save_session(session: &Session) {
+    let state = crate::persistence::State {
+        access_token: Some(session.access_token.clone()),
+        company_id: session.company.clone(),
+        role_id: session.role.clone(),
+    };
+    state.store();
 }
 
 fn today() -> Date {

@@ -1,6 +1,6 @@
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
-use crate::client::{break_policy, time_entries};
+use rippling_api::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
 
 #[spinner_wrap]
@@ -104,7 +104,7 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             Error::ApiError(e) => match e {
-                crate::client::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
+                rippling_api::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
                 _ => assert!(false, "Wrong error"),
             },
             _ => assert!(false, "Wrong error"),

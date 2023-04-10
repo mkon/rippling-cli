@@ -1,6 +1,6 @@
-use crate::client;
 use clap::{Parser, Subcommand};
 use dialoguer::Input;
+use rippling_api::mfa;
 
 #[derive(Debug, Parser)]
 pub struct Command {
@@ -28,15 +28,15 @@ pub fn execute(cmd: &Command) {
 
 fn request_flow(facility: &str) {
     let session = &super::get_session();
-    super::wrap_in_spinner(|| client::mfa::request(session, facility), |r| r.message);
+    super::wrap_in_spinner(|| mfa::request(session, facility), |r| r.message);
     let code = request_code();
-    super::wrap_in_spinner(|| client::mfa::submit(session, facility, &code), |r| r.message);
+    super::wrap_in_spinner(|| mfa::submit(session, facility, &code), |r| r.message);
 }
 
 fn token_flow() {
     let code = request_code();
     super::wrap_in_spinner(
-        || client::mfa::token(&super::get_session(), &code),
+        || mfa::token(&super::get_session(), &code),
         |r| if r { "Code valid".into() } else { "Code invalid".into() },
     )
 }

@@ -7,7 +7,7 @@ use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
 use super::pto::{self, CheckOutcome};
 
-use crate::client::{
+use rippling_api::{
     self,
     break_policy::{self, BreakPolicy},
     time_entries::{NewTimeEntry, TimeEntry},
@@ -44,7 +44,7 @@ pub fn execute(cmd: &Command) {
 }
 
 fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
-    let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, client::Error> {
+    let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, rippling_api::Error> {
         let session = super::get_session();
         let policy = break_policy::active_policy(&session)?;
         break_policy::fetch(&session, &policy.break_policy)
@@ -100,7 +100,7 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
 
 #[spinner_wrap(entry_to_string)]
 fn submit_entry(session: &Session, entry: NewTimeEntry) -> super::Result<TimeEntry> {
-    Ok(client::time_entries::create_entry(&session, &entry)?)
+    Ok(rippling_api::time_entries::create_entry(&session, &entry)?)
 }
 
 fn entry_to_string(entry: TimeEntry) -> String {

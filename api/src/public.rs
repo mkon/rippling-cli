@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use url::Url;
 
 use regex::Regex;
 use serde::Deserialize;
@@ -42,8 +43,8 @@ impl Client {
             .params(&params)
             .basic_auth(&self.id, Some(&self.secret));
         let result: TokenJson = req.send()?.json()?;
-
-        Ok(Session::new(result.access_token))
+        let url = Url::parse("https://app.rippling.com/api/").unwrap();
+        Ok(Session::new(url, result.access_token))
     }
 }
 

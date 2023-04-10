@@ -1,4 +1,3 @@
-use crate::persistence;
 use attohttpc::header::IntoHeaderName;
 pub use attohttpc::Method;
 pub use attohttpc::StatusCode;
@@ -15,9 +14,9 @@ pub struct Request {
 pub type Result<T> = std::result::Result<T, super::Error>;
 
 impl Request {
-    pub fn new(method: Method, path: &str) -> Self {
-        let builder = attohttpc::RequestBuilder::new(method, Self::url_for(path));
-        Self { builder: builder }
+    pub fn new(method: Method, url: Url) -> Self {
+        let builder = attohttpc::RequestBuilder::new(method, url);
+        Self { builder }
     }
 
     pub fn bearer_auth(self, token: &str) -> Self {
@@ -38,14 +37,6 @@ impl Request {
 
     pub fn send_json<J: serde::Serialize>(self, json: J) -> Result<Response> {
         Ok(Response::new(self.builder.json(&json)?.send()?))
-    }
-
-    fn url_for(path: &str) -> Url {
-        #[cfg(not(test))]
-        let url = "https://app.rippling.com/api/";
-        #[cfg(test)]
-        let url = &utilities::mocking::server_url();
-        Url::parse(url).unwrap().join(path).unwrap()
     }
 }
 
@@ -86,33 +77,15 @@ impl Response {
 
 #[derive(Clone, Debug)]
 pub struct Session {
-    access_token: String,
+    pub access_token: String,
     pub company: Option<String>,
     pub role: Option<String>,
+    pub url: Url,
 }
 
 impl Session {
-    pub fn new(token: String) -> Self {
-        Self { access_token: token, company: None, role: None }
-    }
-
-    #[allow(dead_code)]
-    pub fn load() -> Self {
-        let state = persistence::State::load();
-        Self {
-            access_token: state.access_token.expect("State missing access token"),
-            company: state.company_id,
-            role: state.role_id,
-        }
-    }
-
-    pub fn save(&self) {
-        let state = persistence::State {
-            access_token: Some(self.access_token.clone()),
-            company_id: self.company.clone(),
-            role_id: self.role.clone(),
-        };
-        state.store();
+    pub fn new(url: Url, token: String) -> Self {
+        Self { access_token: token, company: None, role: None, url }
     }
 
     pub fn set_company_and_role(&mut self, company: String, role: String) {
@@ -141,7 +114,8 @@ impl Session {
     }
 
     fn request(&self, method: Method, path: &str) -> Request {
-        let mut builder = Request::new(method, path).bearer_auth(&self.access_token);
+        let url = self.url.join(path).unwrap();
+        let mut builder = Request::new(method, url).bearer_auth(&self.access_token);
         if let Some(value) = &self.company {
             builder = builder.header("company", value.to_owned());
         }
