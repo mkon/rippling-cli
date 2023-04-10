@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-attohttpc = { version = "0.24.1", features = ["basic-auth", "json"] }
+# attohttpc = { version = "0.24.1", features = ["basic-auth", "json"] }
 clap = { version = "4.0.32", features = ["derive"] }
 confy = "0.5.1"
 console = "0.15.5"
@@ -14,7 +14,6 @@ dialoguer = "0.10.4"
 directories = "5.0.0"
 env_logger = "0.10.0"
 indicatif = "0.17.3"
-json_value_merge = "1.1.2"
 log = "0.4.17"
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }

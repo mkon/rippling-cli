@@ -133,6 +133,6 @@ pub fn test_session() -> Session {
         access_token: "access-token".into(),
         company: Some("some-company-id".into()),
         role: Some("some-role-id".into()),
-        url
+        url,
     }
 }

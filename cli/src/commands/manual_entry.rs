@@ -36,14 +36,15 @@ pub struct Command {
     pub ranges: Vec<TimeRange>,
 }
 
+/// Entrypoint for this module
 pub fn execute(cmd: &Command) {
     let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
-    create_entry(date, &cmd.ranges, cmd.check, cmd.yes)
+    draft_entry(date, &cmd.ranges, cmd.check, cmd.yes)
 }
 
-fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
+fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
     let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, rippling_api::Error> {
         let session = super::get_session();
         let policy = break_policy::active_policy(&session)?;
@@ -171,7 +172,7 @@ mod tests {
     use time::Duration;
     use utilities::mocking;
 
-    use super::{create_entry, TimeRange};
+    use super::{draft_entry, TimeRange};
 
     #[test]
     fn it_works() {
@@ -206,7 +207,7 @@ mod tests {
             )))
             .create();
 
-        create_entry(date!(2023 - 02 - 07), &ranges, false, true);
+        draft_entry(date!(2023 - 02 - 07), &ranges, false, true);
         m3.assert();
     }
 

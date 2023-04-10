@@ -903,7 +903,6 @@ dependencies = [
 name = "rippling-cli"
 version = "0.3.1"
 dependencies = [
- "attohttpc",
  "clap",
  "confy",
  "console",
@@ -911,7 +910,6 @@ dependencies = [
  "directories 5.0.0",
  "env_logger",
  "indicatif",
- "json_value_merge",
  "log",
  "regex",
  "rippling-api",
