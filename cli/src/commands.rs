@@ -10,7 +10,6 @@ use dialoguer::{Input, Password};
 use indicatif::ProgressBar;
 use rippling_api::{self, time_entries::TimeEntryBreak, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
-use url::Url;
 
 use crate::persistence::Settings;
 
@@ -145,19 +144,18 @@ fn authenticate(cfg: &Settings) {
 }
 
 fn get_session() -> Session {
-    #[cfg(not(test))]
+    #[cfg(any(not(test), rust_analyzer))]
     let session = {
-        let url = Url::parse("https://app.rippling.com/api/").unwrap();
         let state = crate::persistence::State::load();
-        let mut s = Session::new(url, state.access_token.unwrap());
+        let mut s = Session::new(None, state.access_token.unwrap());
         s.company = state.company_id;
         s.role = state.role_id;
         s
     };
-    #[cfg(test)]
+    #[cfg(all(test, not(rust_analyzer)))]
     let session = {
-        let url = Url::parse(&utilities::mocking::server_url()).unwrap();
-        let mut s = Session::new(url, "access-token".into());
+        let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
+        let mut s = Session::new(Some(url), "access-token".into());
         s.set_company_and_role("some-company-id".into(), "some-role-id".into());
         s
     };

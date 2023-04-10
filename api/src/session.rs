@@ -84,7 +84,8 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(url: Url, token: String) -> Self {
+    pub fn new(url: Option<Url>, token: String) -> Self {
+        let url = url.unwrap_or(super::default_root());
         Self { access_token: token, company: None, role: None, url }
     }
 
@@ -127,6 +128,7 @@ impl Session {
 }
 
 #[cfg(test)]
+/// Helper function for DRY tests
 pub fn test_session() -> Session {
     let url = Url::parse(&utilities::mocking::server_url()).unwrap();
     Session {
