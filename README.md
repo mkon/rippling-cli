@@ -6,7 +6,7 @@ Command line interface to Rippling HR.
 You can either compile it yourself, but it requires rust ecosystem with `cargo`.
 
 ```bash
-cargo install --path .
+cargo install --path cli
 ```
 
 Alternatively you can download a binary [release](https://github.com/mkon/rippling-cli/releases). At least on MacOS you probably will have to clear the quarantine flag after downloading to make it executable:
