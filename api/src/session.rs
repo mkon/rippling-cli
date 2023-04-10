@@ -125,3 +125,14 @@ impl Session {
         builder
     }
 }
+
+#[cfg(test)]
+pub fn test_session() -> Session {
+    let url = Url::parse(&utilities::mocking::server_url()).unwrap();
+    Session {
+        access_token: "access-token".into(),
+        company: Some("some-company-id".into()),
+        role: Some("some-role-id".into()),
+        url
+    }
+}

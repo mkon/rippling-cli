@@ -91,17 +91,11 @@ mod tests {
 
     use super::*;
 
-    fn session() -> Session {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "my-role-id".into());
-        session
-    }
-
     #[test]
     fn it_can_fetch_a_break_policy() {
         let _m = mocking::mock_break_policy("policy-id");
 
-        let policy = fetch(&session(), "policy-id").unwrap();
+        let policy = fetch(&crate::session::test_session(), "policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
         assert_eq!(mybreak.id, "break-id-1");
         assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
@@ -111,7 +105,7 @@ mod tests {
     fn it_can_fetch_active_policy() {
         let _m = mocking::mock_active_policy();
 
-        let policy = active_policy(&session()).unwrap();
+        let policy = active_policy(&crate::session::test_session()).unwrap();
         assert_eq!(policy.break_policy, "some-break-policy-id");
         assert_eq!(policy.time_policy, "some-policy-id");
         assert_eq!(policy.role_overrides.role_properties.default_timezone, "Europe/Berlin");

@@ -199,8 +199,8 @@ mod tests {
                             "endTime": "2023-02-07T15:30:00+01:00"
                         }
                     ],
-                    "company": "company-id",
-                    "role": "my-role-id",
+                    "company": "some-company-id",
+                    "role": "some-role-id",
                     "source": "WEB"
                 }
             )))

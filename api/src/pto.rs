@@ -59,16 +59,10 @@ mod tests {
 
     use super::*;
 
-    fn session() -> Session {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
-        session
-    }
-
     #[test]
     fn it_can_fetch_leave_requests() {
         let _m = mocking::with_fixture("GET", "/pto/api/leave_requests/?role=some-role-id", "leave_requests").create();
-        let data = leave_requests(&session()).unwrap();
+        let data = leave_requests(&crate::session::test_session()).unwrap();
         assert_eq!(data.len(), 2);
         let days: Vec<Date> = data.into_iter().map(|h| h.start_date).collect();
         assert_eq!(days, vec![date![2022 - 06 - 09], date![2022 - 05 - 23]]);
@@ -77,7 +71,7 @@ mod tests {
     #[test]
     fn it_can_fetch_holiday_calendar() {
         let _m = mocking::with_fixture("POST", "/pto/api/get_holiday_calendar/", "holiday_calendar").create();
-        let data = holiday_calendar(&session()).unwrap();
+        let data = holiday_calendar(&crate::session::test_session()).unwrap();
         assert_eq!(data.len(), 9);
         let y2023 = data.into_iter().find(|y| y.year == 2023).unwrap();
         assert_eq!(y2023.holidays.len(), 13);

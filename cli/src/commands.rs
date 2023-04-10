@@ -158,7 +158,7 @@ fn get_session() -> Session {
     let session = {
         let url = Url::parse(&utilities::mocking::server_url()).unwrap();
         let mut s = Session::new(url, "access-token".into());
-        s.set_company_and_role("company-id".into(), "my-role-id".into());
+        s.set_company_and_role("some-company-id".into(), "some-role-id".into());
         s
     };
     session

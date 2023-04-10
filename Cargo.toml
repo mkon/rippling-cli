@@ -6,3 +6,5 @@ members = [
     "spinner_macro",
     "utilities",
 ]
+
+default-members = ["api", "cli"]
