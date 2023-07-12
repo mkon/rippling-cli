@@ -119,6 +119,7 @@ pub fn execute(command: &Commands) {
 }
 
 fn authenticate(cfg: &Settings) {
+    let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     let username = match &cfg.username {
         None => Text::new("Enter your user name").prompt().unwrap(),
         Some(value) => value.clone(),
@@ -129,7 +130,6 @@ fn authenticate(cfg: &Settings) {
         .unwrap();
 
     let s = start_spinner();
-    let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     match client.authenticate(&username, &password) {
         Ok(mut session) => {
             let info = rippling_api::account_info::fetch(&session).expect("Failed to query account info");

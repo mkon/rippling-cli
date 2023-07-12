@@ -18,7 +18,7 @@ impl Client {
 
     /// Returns a new public client with id and secret configured remotely
     pub fn initialize_from_remote() -> Result<Self> {
-        let res = attohttpc::get(super::default_host().join("/login").unwrap()).send()?;
+        let res = attohttpc::get(super::default_host().join("/security/setup").unwrap()).send()?;
         let html = res.text()?;
         let re = Regex::new(r#"<script>window.ripplingConfig = (\{.*\})</script>"#).unwrap();
         match re.captures(&html) {
