@@ -3,6 +3,7 @@ mod persistence;
 
 use std::{
     fs::File,
+    io::IsTerminal,
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -22,7 +23,7 @@ struct Cli {
 fn main() {
     init_logging();
     let cli = Cli::parse();
-    INTERACTIVE.store(atty::is(atty::Stream::Stdout), Ordering::Relaxed);
+    INTERACTIVE.store(std::io::stdout().is_terminal(), Ordering::Relaxed);
     commands::execute(&cli.command)
 }
 
