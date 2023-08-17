@@ -1,5 +1,6 @@
-use crate::client;
 use clap::{Parser, Subcommand};
+use inquire::Text;
+use rippling_api::mfa;
 
 #[derive(Debug, Parser)]
 pub struct Command {
@@ -33,9 +34,9 @@ pub fn execute(cmd: &Command) {
 
 fn request_flow(facility: &str) {
     let session = &super::get_session();
-    super::wrap_in_spinner(|| client::mfa::request(session, facility), |r| r.message);
-    let code = super::ask_user_input("Enter the code");
-    super::wrap_in_spinner(|| client::mfa::submit(session, facility, &code), |r| r.message);
+    super::wrap_in_spinner(|| mfa::request(session, facility), |r| r.message);
+    let code = request_code();
+    super::wrap_in_spinner(|| mfa::submit(session, facility, &code), |r| r.message);
 }
 
 fn token_flow(token: Option<&str>) {
@@ -45,12 +46,16 @@ fn token_flow(token: Option<&str>) {
     if let Some(t) = token {
         code = t;
     } else {
-        input_code = Some(super::ask_user_input("Enter the code"));
+        input_code = Some(request_code());
         code = input_code.as_ref().unwrap();
     }
 
     super::wrap_in_spinner(
-        || client::mfa::token(&super::get_session(), &code),
+        || mfa::token(&super::get_session(), &code),
         |r| if r { "Code valid".into() } else { "Code invalid".into() },
     )
+}
+
+fn request_code() -> String {
+    Text::new("Enter the code").prompt().unwrap()
 }

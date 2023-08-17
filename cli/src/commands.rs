@@ -3,16 +3,14 @@ pub mod manual_entry;
 pub mod mfa;
 pub mod pto;
 
-use std::io;
-
 use clap::Subcommand;
-use spinners::{Spinner, Spinners};
+use core::time::Duration;
+use indicatif::ProgressBar;
+use inquire::{Password, Text};
+use rippling_api::{self, time_entries::TimeEntryBreak, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
-use crate::{
-    client::{self, time_entries::TimeEntryBreak, Session},
-    persistence::Settings,
-};
+use crate::persistence::Settings;
 
 use self::pto::CheckOutcome;
 
@@ -64,7 +62,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    ApiError(client::Error),
+    ApiError(rippling_api::Error),
     AlreadyOnBreak(TimeEntryBreak),
     NotClockedIn,
     NotOnBreak,
@@ -92,8 +90,8 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl From<client::Error> for Error {
-    fn from(value: client::Error) -> Self {
+impl From<rippling_api::Error> for Error {
+    fn from(value: rippling_api::Error) -> Self {
         Error::ApiError(value)
     }
 }
@@ -121,40 +119,56 @@ pub fn execute(command: &Commands) {
 }
 
 fn authenticate(cfg: &Settings) {
+    let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
     let username = match &cfg.username {
-        None => ask_user_input("Enter your user name"),
+        None => Text::new("Enter your user name").prompt().unwrap(),
         Some(value) => value.clone(),
     };
-    let password = ask_user_input("Enter your password");
+    let password = Password::new("Enter your password")
+        .without_confirmation()
+        .prompt()
+        .unwrap();
 
-    let client = client::PublicClient::initialize_from_remote().unwrap();
+    let s = start_spinner();
     match client.authenticate(&username, &password) {
         Ok(mut session) => {
-            let info = client::account_info::fetch(&session).expect("Failed to query account info");
+            let info = rippling_api::account_info::fetch(&session).expect("Failed to query account info");
             session.set_company_and_role(info.role.company.id, info.id);
-            session.save();
+            save_session(&session);
+            s.finish_with_message("Authentication successfull");
         }
-        _ => println!("Authentication failed"),
+        _ => {
+            s.finish_with_message("Authentication failed!");
+        }
     }
-}
-
-fn ask_user_input(prompt: &str) -> String {
-    println!("> {prompt}");
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read input");
-    input.trim().to_owned()
 }
 
 fn get_session() -> Session {
     #[cfg(not(test))]
-    let session = Session::load();
+    let session = {
+        let state = crate::persistence::State::load();
+        let mut s = Session::new(None, state.access_token.unwrap());
+        s.company = state.company_id;
+        s.role = state.role_id;
+        s
+    };
     #[cfg(test)]
     let session = {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("company-id".into(), "my-role-id".into());
-        session
+        let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
+        let mut s = Session::new(Some(url), "access-token".into());
+        s.set_company_and_role("some-company-id".into(), "some-role-id".into());
+        s
     };
     session
+}
+
+fn save_session(session: &Session) {
+    let state = crate::persistence::State {
+        access_token: Some(session.access_token.clone()),
+        company_id: session.company.clone(),
+        role_id: session.role.clone(),
+    };
+    state.store();
 }
 
 fn today() -> Date {
@@ -172,17 +186,38 @@ where
     wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
 }
 
+fn with_spinner<R, F: FnOnce() -> R>(f: F) -> R {
+    let s = start_spinner();
+    let res = f();
+    s.finish_and_clear();
+    res
+}
+
 fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)
 where
     Fn: FnOnce() -> std::result::Result<T, E>,
     Ok: FnOnce(T) -> String,
     Er: FnOnce(E) -> String,
 {
-    let mut sp = Spinner::new(Spinners::Dots9, String::from("Connecting with rippling"));
-    match f() {
-        Ok(t) => sp.stop_with_message(ok(t)),
-        Err(e) => sp.stop_with_message(er(e)),
+    if super::INTERACTIVE.load(std::sync::atomic::Ordering::Relaxed) {
+        let s = start_spinner();
+        match f() {
+            Ok(t) => s.finish_with_message(ok(t)),
+            Err(e) => s.finish_with_message(er(e)),
+        }
+    } else {
+        match f() {
+            Ok(t) => println!("{}", ok(t)),
+            Err(e) => println!("{}", er(e)),
+        }
     }
+}
+
+fn start_spinner() -> ProgressBar {
+    let s = ProgressBar::new_spinner();
+    s.set_message("Connecting with rippling...");
+    s.enable_steady_tick(Duration::new(0, 100_000_000));
+    s
 }
 
 fn format_hours(hours: f32) -> String {

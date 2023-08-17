@@ -1,6 +1,6 @@
 use std::thread;
 
-use crate::client::pto::Holiday;
+use rippling_api::pto::{self, Holiday};
 use time::Date;
 
 use super::Result;
@@ -31,8 +31,7 @@ pub fn check(date: Date) -> Result<CheckOutcome> {
 
 fn check_holiday(date: Date) -> Result<Option<Holiday>> {
     let session = super::get_session();
-    let cal = crate::client::pto::holiday_calendar(&session)?;
-    std::thread::sleep(std::time::Duration::from_millis(2000));
+    let cal = pto::holiday_calendar(&session)?;
     match cal.into_iter().find(|hy| hy.year as i32 == date.year()) {
         Some(year) => Ok(year
             .holidays
@@ -44,7 +43,7 @@ fn check_holiday(date: Date) -> Result<Option<Holiday>> {
 
 fn is_leave_request(date: Date) -> Result<bool> {
     let session = super::get_session();
-    let lr = crate::client::pto::leave_requests(&session)?;
+    let lr = pto::leave_requests(&session)?;
     let found = lr.into_iter().any(|r| r.start_date <= date && r.end_date >= date);
     Ok(found)
 }

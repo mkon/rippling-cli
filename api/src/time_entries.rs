@@ -1,9 +1,10 @@
 use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
-use time::{Duration, OffsetDateTime};
-
+use time::format_description::FormatItem;
+use time::macros::format_description;
 use time::serde::rfc3339;
+use time::{Duration, OffsetDateTime};
 
 use super::session::Session;
 use super::Result;
@@ -62,6 +63,42 @@ pub struct NewTimeEntry {
     source: String,
 }
 
+const DATE_FMT: &[FormatItem] = format_description!("[weekday repr:short] [day] [month repr:short]");
+const TIME_FMT: &[FormatItem] = format_description!("[hour]:[minute]");
+
+impl NewTimeEntry {
+    fn render_breaks(&self) -> String {
+        self.breaks.iter().fold(String::new(), |mut a, b| {
+            if a.len() > 0 {
+                a.push_str(", ")
+            }
+            a.push_str(&format!(
+                "{}-{}",
+                b.start_time.format(TIME_FMT).unwrap(),
+                b.end_time.format(TIME_FMT).unwrap()
+            ));
+            a
+        })
+    }
+}
+
+impl std::fmt::Display for NewTimeEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let shift = self.shifts.first().unwrap();
+        let date = shift.start_time.date();
+        let mut out = format!(
+            "{} {}-{}",
+            date.format(DATE_FMT).unwrap(),
+            shift.start_time.format(TIME_FMT).unwrap(),
+            shift.end_time.format(TIME_FMT).unwrap()
+        );
+        if self.breaks.len() > 0 {
+            out.push_str(&format!(" (Breaks {})", self.render_breaks()));
+        }
+        write!(f, "{out}")
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct NewTimeEntryBreak {
     #[serde(rename = "companyBreakType")]
@@ -92,6 +129,8 @@ pub struct TimeEntry {
     pub breaks: Vec<TimeEntryBreak>,
     #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
     pub regular_hours: f32,
+    #[serde(rename = "unpaidBreakHours", deserialize_with = "f32_from_str")]
+    pub unpaid_break_hours: f32,
     // pub timezone: String,
 }
 
@@ -120,13 +159,12 @@ impl NewTimeEntry {
     }
 
     pub fn add_shift(&mut self, start_time: OffsetDateTime, end_time: OffsetDateTime) {
-        self.shifts
-            .push(NewTimeEntryShift { start_time: start_time, end_time: end_time });
+        self.shifts.push(NewTimeEntryShift { start_time, end_time });
     }
 
     pub fn add_break(&mut self, break_type: String, start_time: OffsetDateTime, end_time: OffsetDateTime) {
         self.breaks
-            .push(NewTimeEntryBreak { break_type_id: break_type, start_time: start_time, end_time: end_time });
+            .push(NewTimeEntryBreak { break_type_id: break_type, start_time, end_time });
     }
 }
 
@@ -158,12 +196,6 @@ mod tests {
     use super::*;
     use time::{format_description::well_known::Rfc3339, macros::datetime, UtcOffset};
     use utilities::mocking;
-
-    fn session() -> Session {
-        let mut session = Session::new("access-token".into());
-        session.set_company_and_role("some-company-id".into(), "some-role-id".into());
-        session
-    }
 
     #[test]
     fn it_can_create_entries() {
@@ -199,7 +231,7 @@ mod tests {
             )))
             .create();
 
-        let entry = create_entry(&session(), &new_entry);
+        let entry = create_entry(&crate::session::test_session(), &new_entry);
         assert!(entry.is_ok());
         m.assert();
     }
@@ -208,7 +240,7 @@ mod tests {
     fn it_can_fetch_current_entry() {
         let _m = mocking::with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
 
-        let entry = current_entry(&session()).unwrap().unwrap();
+        let entry = current_entry(&crate::session::test_session()).unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
@@ -228,7 +260,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = start_clock(&session()).unwrap();
+        let entry = start_clock(&crate::session::test_session()).unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -243,7 +275,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = end_clock(&session(), &"id").unwrap();
+        let entry = end_clock(&crate::session::test_session(), &"id").unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -260,7 +292,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        start_break(&session(), &"id", &"break-type-id").unwrap();
+        start_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 
@@ -274,7 +306,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        end_break(&session(), &"id", &"break-type-id").unwrap();
+        end_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 }

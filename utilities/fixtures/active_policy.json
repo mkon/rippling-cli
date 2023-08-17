@@ -1,12 +1,12 @@
 {
-  "my-role-id": {
+  "some-role-id": {
     "timePolicy": "some-policy-id",
     "breakPolicy": "some-break-policy-id",
     "overtimePolicy": null,
     "customPayPolicy": null,
     "roleOverrides": {
       "roleProperties": {
-        "role": "my-role-id",
+        "role": "some-role-id",
         "designatedApprover": "some-manager-id",
         "defaultTimezone": "Europe/Berlin"
       }

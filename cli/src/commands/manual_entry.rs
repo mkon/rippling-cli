@@ -1,18 +1,17 @@
 use clap::{arg, Parser};
+use inquire::Confirm;
 use regex::Regex;
 use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
-use super::{
-    pto::{self, CheckOutcome},
-    Result,
-};
+use super::pto::{self, CheckOutcome};
 
-use crate::client::{
+use rippling_api::{
     self,
     break_policy::{self, BreakPolicy},
     time_entries::{NewTimeEntry, TimeEntry},
+    Session,
 };
 
 #[derive(Clone, Debug)]
@@ -30,20 +29,23 @@ pub struct Command {
     /// Before submitting check for overlap with holidays, weekends or PTO
     #[arg(short, long)]
     pub check: bool,
+    /// Bypass prompt with a yes answer
+    #[arg(short, long)]
+    pub yes: bool,
     #[arg(value_parser = parse_input_shifts)]
     pub ranges: Vec<TimeRange>,
 }
 
+/// Entrypoint for this module
 pub fn execute(cmd: &Command) {
     let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
-    create_entry_spinner(date, &cmd.ranges, cmd.check)
+    draft_entry(date, &cmd.ranges, cmd.check, cmd.yes)
 }
 
-#[spinner_wrap(entry_to_string)]
-fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<TimeEntry> {
-    let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, client::Error> {
+fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
+    let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, rippling_api::Error> {
         let session = super::get_session();
         let policy = break_policy::active_policy(&session)?;
         break_policy::fetch(&session, &policy.break_policy)
@@ -52,10 +54,11 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<Time
     let session = super::get_session();
 
     if check {
-        let pto = pto::check(date)?;
+        let pto = pto::check(date).unwrap();
         if let CheckOutcome::WorkingDay = pto {
         } else {
-            return Err(super::Error::NoWorkingDay(pto));
+            println!("{}", super::Error::NoWorkingDay(pto));
+            return;
         }
     }
 
@@ -77,13 +80,24 @@ fn create_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<Time
     let end_time = events.pop().unwrap();
     entry.add_shift(start_time, end_time);
 
-    let break_policy = policy_thread.join().unwrap()?;
+    let break_policy = policy_thread.join().unwrap().unwrap();
     let btype = break_policy.manual_break_type().unwrap();
     for pair in events.chunks(2) {
         entry.add_break(btype.id.to_owned(), pair[0], pair[1]);
     }
 
-    Ok(client::time_entries::create_entry(&session, &entry)?)
+    if yes {
+        submit_entry_spinner(&session, entry);
+    } else {
+        if Confirm::new(&format!("Create entry {}?", entry)).prompt().unwrap() {
+            submit_entry_spinner(&session, entry);
+        }
+    }
+}
+
+#[spinner_wrap(entry_to_string)]
+fn submit_entry(session: &Session, entry: NewTimeEntry) -> super::Result<TimeEntry> {
+    Ok(rippling_api::time_entries::create_entry(&session, &entry)?)
 }
 
 fn entry_to_string(entry: TimeEntry) -> String {
@@ -154,7 +168,7 @@ mod tests {
     use time::Duration;
     use utilities::mocking;
 
-    use super::{create_entry, TimeRange};
+    use super::{draft_entry, TimeRange};
 
     #[test]
     fn it_works() {
@@ -165,7 +179,7 @@ mod tests {
 
         let _m1 = mocking::mock_active_policy();
         let _m2 = mocking::mock_break_policy("some-break-policy-id");
-        let _m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
+        let m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "entry_closed")
             .with_status(201)
             .match_body(mocking::Matcher::Json(json!(
                 {
@@ -182,15 +196,15 @@ mod tests {
                             "endTime": "2023-02-07T15:30:00+01:00"
                         }
                     ],
-                    "company": "company-id",
-                    "role": "my-role-id",
+                    "company": "some-company-id",
+                    "role": "some-role-id",
                     "source": "WEB"
                 }
             )))
             .create();
 
-        let res = create_entry(date!(2023 - 02 - 07), &ranges, false);
-        assert!(res.is_ok());
+        draft_entry(date!(2023 - 02 - 07), &ranges, false, true);
+        m3.assert();
     }
 
     #[test]

@@ -1,12 +1,29 @@
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
-use crate::client::{break_policy, time_entries};
+use rippling_api::{break_policy, time_entries};
 use spinner_macro::spinner_wrap;
 
 #[spinner_wrap]
 pub fn status() -> Result<String> {
     Ok(match time_entries::current_entry(&super::get_session())? {
-        Some(entry) => format!("Clocked in since {}!", local_time_format(entry.start_time)),
+        Some(entry) => {
+            let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
+
+            // If on break, print the break start time
+            if let Some(br) = entry.current_break() {
+                msg.push_str(&format!(", started break at {}", local_time_format(br.start_time)));
+            }
+
+            // Print regular hours and breaks
+            let regular_hours_formatted = format_hours(entry.regular_hours);
+            let unpaid_break_hours_formatted = format_hours(entry.unpaid_break_hours);
+            msg.push_str(&format!(
+                " (Regular hours: {}, Breaks: {})",
+                regular_hours_formatted, unpaid_break_hours_formatted
+            ));
+
+            msg
+        }
         None => "Not clocked in!".to_owned(),
     })
 }
@@ -87,7 +104,7 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             Error::ApiError(e) => match e {
-                crate::client::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
+                rippling_api::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
                 _ => assert!(false, "Wrong error"),
             },
             _ => assert!(false, "Wrong error"),
