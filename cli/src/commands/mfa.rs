@@ -8,10 +8,16 @@ pub struct Command {
     pub facility: Facility,
 }
 
+#[derive(Debug, Parser)]
+pub struct Token {
+    /// Optional MFA code - If omitted you will be prompted instead
+    value: Option<String>,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Facility {
     /// For use with a token generator like Google Authenticator
-    Token,
+    Token(Token),
     /// Enter the code which will be sent to your email address
     Email,
     /// Enter the code which will be sent to your Phone (SMS)
@@ -19,8 +25,8 @@ pub enum Facility {
 }
 
 pub fn execute(cmd: &Command) {
-    match cmd.facility {
-        Facility::Token => token_flow(),
+    match &cmd.facility {
+        Facility::Token(token) => token_flow(token.value.clone()),
         Facility::Email => request_flow("EMAIL"),
         Facility::Mobile => request_flow("PHONE_TEXT"),
     }
@@ -33,8 +39,15 @@ fn request_flow(facility: &str) {
     super::wrap_in_spinner(|| mfa::submit(session, facility, &code), |r| r.message);
 }
 
-fn token_flow() {
-    let code = request_code();
+fn token_flow(token: Option<String>) {
+    let code: String;
+
+    if let Some(t) = token {
+        code = t;
+    } else {
+        code = request_code();
+    }
+
     super::wrap_in_spinner(
         || mfa::token(&super::get_session(), &code),
         |r| if r { "Code valid".into() } else { "Code invalid".into() },
