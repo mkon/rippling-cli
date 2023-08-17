@@ -10,8 +10,8 @@ pub struct Command {
 
 #[derive(Debug, Parser)]
 pub struct Token {
-    #[structopt(long)]
-    token: Option<String>,
+    /// Optional MFA code - If omitted you will be prompted instead
+    value: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -26,7 +26,7 @@ pub enum Facility {
 
 pub fn execute(cmd: &Command) {
     match &cmd.facility {
-        Facility::Token(token) => token_flow(token.token.as_deref()),
+        Facility::Token(token) => token_flow(token.value.clone()),
         Facility::Email => request_flow("EMAIL"),
         Facility::Mobile => request_flow("PHONE_TEXT"),
     }
@@ -39,15 +39,13 @@ fn request_flow(facility: &str) {
     super::wrap_in_spinner(|| mfa::submit(session, facility, &code), |r| r.message);
 }
 
-fn token_flow(token: Option<&str>) {
-    let input_code: Option<String>;
-    let code: &str;
+fn token_flow(token: Option<String>) {
+    let code: String;
 
     if let Some(t) = token {
         code = t;
     } else {
-        input_code = Some(request_code());
-        code = input_code.as_ref().unwrap();
+        code = request_code();
     }
 
     super::wrap_in_spinner(
