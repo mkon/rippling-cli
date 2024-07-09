@@ -32,11 +32,17 @@ impl Request {
     }
 
     pub fn send(self) -> Result<Response> {
-        Ok(Response::new(self.builder.send()?))
+        let resp = self.builder.send()?;
+        dbg!(&resp);
+        Ok(Response::new(resp))
     }
 
     pub fn send_json<J: serde::Serialize>(self, json: J) -> Result<Response> {
-        Ok(Response::new(self.builder.json(&json)?.send()?))
+        dbg!("Sending JSON request to");
+        dbg!(&self.builder);
+        let resp = self.builder.json(&json)?.send()?;
+        dbg!(&resp);
+        Ok(Response::new(resp))
     }
 }
 
