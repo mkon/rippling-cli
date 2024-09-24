@@ -12,7 +12,7 @@ confy = "0.5.1"
 directories = "5.0.0"
 env_logger = "0.10.0"
 indicatif = "0.17.3"
-inquire = "0.6.1"
+inquire = "0.7.5"
 log = "0.4.17"
 regex = "1.10.6"
 rippling-api = { path = "../api" }
