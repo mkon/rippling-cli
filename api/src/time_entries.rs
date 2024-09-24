@@ -11,7 +11,7 @@ use super::Result;
 
 pub fn create_entry(session: &Session, entry: &NewTimeEntry) -> Result<TimeEntry> {
     let mut body = json!(&entry);
-    body.merge(json!({"company":session.company(), "role":session.role()}));
+    body.merge(&json!({"company":session.company(), "role":session.role()}));
     session
         .post("time_tracking/api/time_entries")
         .send_json(&body)?
