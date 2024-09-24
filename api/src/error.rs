@@ -36,16 +36,16 @@ impl From<Response> for Error {
                     let data = res.json::<serde_json::Value>().unwrap();
                     match &data {
                         serde_json::Value::Array(list) if list.first().unwrap().is_string() => Error::ApiError {
-                            status: status,
+                            status,
                             description: list.first().map(|v| v.as_str().unwrap().to_owned()),
                             json: Some(data),
                         },
                         serde_json::Value::Object(obj) if obj.contains_key("detail") => Error::ApiError {
-                            status: status,
+                            status,
                             description: obj["detail"].as_str().map(|v| v.to_owned()),
                             json: Some(data),
                         },
-                        _ => Error::ApiError { status: status, description: None, json: Some(data) },
+                        _ => Error::ApiError { status, description: None, json: Some(data) },
                     }
                 } else {
                     Error::UnhandledStatus(res.status().as_u16())
@@ -83,13 +83,15 @@ mod tests {
 
     #[test]
     fn it_can_parse_array_errors() {
-        let _m = mocking::mock("GET", mocking::Matcher::Any)
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .mock("GET", mocking::Matcher::Any)
             .with_status(400)
             .with_header("content-type", "application/json")
             .with_body(json!(["Oops!"]).to_string())
             .create();
 
-        let req = attohttpc::get(mocking::server_url());
+        let req = attohttpc::get(server.url());
         let error: Error = req.send().unwrap().into();
         if let Error::ApiError { status, description, json: _ } = error {
             assert_eq!(status, 400);
@@ -102,13 +104,15 @@ mod tests {
 
     #[test]
     fn it_can_parse_detail_errors() {
-        let _m = mocking::mock("GET", mocking::Matcher::Any)
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .mock("GET", mocking::Matcher::Any)
             .with_status(404)
             .with_header("content-type", "application/json")
             .with_body(json!({"detail": "Not found"}).to_string())
             .create();
 
-        let req = attohttpc::get(mocking::server_url());
+        let req = attohttpc::get(server.url());
         let error: Error = req.send().unwrap().into();
         if let Error::ApiError { status, description, json: _ } = error {
             assert_eq!(status, 404);

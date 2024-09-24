@@ -199,6 +199,7 @@ mod tests {
 
     #[test]
     fn it_can_create_entries() {
+        let mut server = mocking::FakeRippling::new();
         let mut new_entry = NewTimeEntry::new();
         new_entry.add_shift(datetime!(2023-01-20 08:00 +1), datetime!(2023-01-20 17:00 +1));
         new_entry.add_break(
@@ -207,7 +208,8 @@ mod tests {
             datetime!(2023-01-20 12:45 +1),
         );
 
-        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
+        let m = server
+            .with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
             .with_status(201)
             .match_body(mocking::Matcher::Json(json!(
                 {
@@ -231,16 +233,19 @@ mod tests {
             )))
             .create();
 
-        let entry = create_entry(&crate::session::test_session(), &new_entry);
+        let entry = create_entry(&crate::session::test_session(&server), &new_entry);
         assert!(entry.is_ok());
         m.assert();
     }
 
     #[test]
     fn it_can_fetch_current_entry() {
-        let _m = mocking::with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries").create();
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries")
+            .create();
 
-        let entry = current_entry(&crate::session::test_session()).unwrap().unwrap();
+        let entry = current_entry(&crate::session::test_session(&server)).unwrap().unwrap();
         assert_eq!(entry.active_policy.break_policy_id, "some-break-policy");
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
@@ -252,7 +257,9 @@ mod tests {
 
     #[test]
     fn it_can_start_the_clock() {
-        let _m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .with_fixture("POST", "/time_tracking/api/time_entries/start_clock", "time_entry")
             .match_body(mocking::Matcher::Json(
                 json!({"source": "WEB_CLOCK", "role": "some-role-id"}),
             ))
@@ -260,7 +267,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = start_clock(&crate::session::test_session()).unwrap();
+        let entry = start_clock(&crate::session::test_session(&server)).unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -269,13 +276,15 @@ mod tests {
 
     #[test]
     fn it_can_stop_the_clock() {
-        let _m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .with_fixture("POST", "/time_tracking/api/time_entries/id/stop_clock", "time_entry")
             .match_body(mocking::Matcher::Json(json!({"source": "WEB_CLOCK"})))
             .match_header("company", "some-company-id")
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = end_clock(&crate::session::test_session(), &"id").unwrap();
+        let entry = end_clock(&crate::session::test_session(&server), &"id").unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -284,7 +293,9 @@ mod tests {
 
     #[test]
     fn it_can_take_a_break() {
-        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
+        let mut server = mocking::FakeRippling::new();
+        let m = server
+            .with_fixture("POST", "/time_tracking/api/time_entries/id/start_break", "time_entry")
             .match_body(mocking::Matcher::Json(
                 json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
             ))
@@ -292,13 +303,15 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        start_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
+        start_break(&crate::session::test_session(&server), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 
     #[test]
     fn it_can_stop_a_break() {
-        let m = mocking::with_fixture("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
+        let mut server = mocking::FakeRippling::new();
+        let m = server
+            .with_fixture("POST", "/time_tracking/api/time_entries/id/end_break", "time_entry")
             .match_body(mocking::Matcher::Json(
                 json!({"source": "WEB_CLOCK", "break_type": "break-type-id"}),
             ))
@@ -306,7 +319,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        end_break(&crate::session::test_session(), &"id", &"break-type-id").unwrap();
+        end_break(&crate::session::test_session(&server), &"id", &"break-type-id").unwrap();
         m.assert()
     }
 }

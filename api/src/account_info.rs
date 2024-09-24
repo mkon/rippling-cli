@@ -37,9 +37,12 @@ mod tests {
 
     #[test]
     fn it_can_fetch_account_info() {
-        let _m = mocking::with_fixture("GET", "/auth_ext/get_account_info", "account_info").create();
+        let mut server = mocking::FakeRippling::new();
+        let _m = server
+            .with_fixture("GET", "/auth_ext/get_account_info", "account_info")
+            .create();
 
-        let info = fetch(&crate::session::test_session()).unwrap();
+        let info = fetch(&crate::session::test_session(&server)).unwrap();
         assert_eq!(info.role.company.id, "some-company-id");
         assert_eq!(info.id, "my-role-id");
     }

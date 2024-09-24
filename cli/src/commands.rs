@@ -144,7 +144,6 @@ fn authenticate(cfg: &Settings) {
 }
 
 fn get_session() -> Session {
-    #[cfg(not(test))]
     let session = {
         let state = crate::persistence::State::load();
         let mut s = Session::new(None, state.access_token.unwrap());
@@ -152,13 +151,13 @@ fn get_session() -> Session {
         s.role = state.role_id;
         s
     };
-    #[cfg(test)]
-    let session = {
-        let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
-        let mut s = Session::new(Some(url), "access-token".into());
-        s.set_company_and_role("some-company-id".into(), "some-role-id".into());
-        s
-    };
+    // #[cfg(test)]
+    // let session = {
+    //     let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
+    //     let mut s = Session::new(Some(url), "access-token".into());
+    //     s.set_company_and_role("some-company-id".into(), "some-role-id".into());
+    //     s
+    // };
     session
 }
 
@@ -184,13 +183,6 @@ where
     E: std::fmt::Display,
 {
     wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
-}
-
-fn with_spinner<R, F: FnOnce() -> R>(f: F) -> R {
-    let s = start_spinner();
-    let res = f();
-    s.finish_and_clear();
-    res
 }
 
 fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)
