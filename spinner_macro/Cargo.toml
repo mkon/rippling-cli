@@ -11,5 +11,5 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0.54"
 quote = "1.0.26"
-regex = "1.7.3"
-venial = "0.5.0"
+regex = "1.10.6"
+venial = "0.5.0" # 0.6.0 is breaking
