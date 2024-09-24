@@ -16,8 +16,8 @@ inquire = "0.6.1"
 log = "0.4.17"
 regex = "1.10.6"
 rippling-api = { path = "../api" }
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.91"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
 spinner_macro = { path = "../spinner_macro" }
 time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
 tzdb = "0.5.3"
