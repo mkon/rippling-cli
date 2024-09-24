@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
 # console = "0.15.5"
-confy = "0.5.1"
-directories = "5.0.0"
+confy = "0.6.1"
+directories = "5.0.1"
 env_logger = "0.10.0"
 indicatif = "0.17.3"
 inquire = "0.7.5"
