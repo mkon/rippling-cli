@@ -53,7 +53,7 @@ pub fn start_break() -> Result<String> {
     match time_entries::current_entry(&session)? {
         None => Err(Error::NotClockedIn),
         Some(entry) => match entry.current_break() {
-            Some(br) => Err(Error::AlreadyOnBreak(br.to_owned())),
+            Some(_) => Err(Error::AlreadyOnBreak),
             None => {
                 let break_policy = break_policy::fetch(&session, &entry.active_policy.break_policy_id)?;
                 let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;

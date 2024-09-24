@@ -7,7 +7,7 @@ use clap::Subcommand;
 use core::time::Duration;
 use indicatif::ProgressBar;
 use inquire::{Password, Text};
-use rippling_api::{self, time_entries::TimeEntryBreak, Session};
+use rippling_api::{self, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::persistence::Settings;
@@ -63,7 +63,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     ApiError(rippling_api::Error),
-    AlreadyOnBreak(TimeEntryBreak),
+    AlreadyOnBreak,
     NotClockedIn,
     NotOnBreak,
     NoManualBreakType,
@@ -75,7 +75,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ApiError(e) => write!(f, "{e}"),
-            Self::AlreadyOnBreak(_) => write!(f, "Already on a break"),
+            Self::AlreadyOnBreak => write!(f, "Already on a break"),
             Self::NotClockedIn => write!(f, "Not clocked in"),
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
