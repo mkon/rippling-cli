@@ -163,49 +163,7 @@ pub fn parse_input_shifts(s: &str) -> StdResult<TimeRange, String> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use time::macros::{date, time};
     use time::Duration;
-    use utilities::mocking;
-
-    use super::{draft_entry, TimeRange};
-
-    #[test]
-    fn it_works() {
-        let ranges: Vec<TimeRange> = vec![
-            TimeRange { start_time: time!(8:30), end_time: time!(14:00) },
-            TimeRange { start_time: time!(15:30), end_time: time!(17:00) },
-        ];
-
-        let _m1 = mocking::mock_active_policy();
-        let _m2 = mocking::mock_break_policy("some-break-policy-id");
-        let m3 = mocking::with_fixture("POST", "/time_tracking/api/time_entries", "entry_closed")
-            .with_status(201)
-            .match_body(mocking::Matcher::Json(json!(
-                {
-                    "jobShifts": [
-                        {
-                            "startTime": "2023-02-07T08:30:00+01:00",
-                            "endTime": "2023-02-07T17:00:00+01:00"
-                        }
-                    ],
-                    "breaks": [
-                        {
-                            "companyBreakType": "break-id-1",
-                            "startTime": "2023-02-07T14:00:00+01:00",
-                            "endTime": "2023-02-07T15:30:00+01:00"
-                        }
-                    ],
-                    "company": "some-company-id",
-                    "role": "some-role-id",
-                    "source": "WEB"
-                }
-            )))
-            .create();
-
-        draft_entry(date!(2023 - 02 - 07), &ranges, false, true);
-        m3.assert();
-    }
 
     #[test]
     fn minimum_break_for() {

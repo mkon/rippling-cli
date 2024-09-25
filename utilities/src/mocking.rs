@@ -1,31 +1,50 @@
-pub use mockito::{mock, server_url, Matcher, Mock};
+pub use mockito::{Matcher, Mock};
 
-pub fn rippling(method: &str, path: &str) -> Mock {
-    mock(method, path)
-        .with_status(200)
-        .with_header("content-type", "application/json")
-        .match_header("authorization", "Bearer access-token")
+pub struct FakeRippling {
+    server: mockito::ServerGuard,
 }
 
-pub fn with_fixture(method: &str, path: &str, fixture: &str) -> Mock {
-    let file = format!("{}/fixtures/{fixture}.json", env!("CARGO_MANIFEST_DIR"));
-    rippling(method, path).with_body_from_file(file)
-}
+impl FakeRippling {
+    pub fn new() -> Self {
+        Self { server: mockito::Server::new() }
+    }
 
-pub fn mock_active_policy() -> Mock {
-    with_fixture(
-        "GET",
-        "/time_tracking/api/time_entry_policies/get_active_policy",
-        "active_policy",
-    )
-    .create()
-}
+    pub fn mock<P: Into<Matcher>>(&mut self, method: &str, path: P) -> Mock {
+        self.server.mock(method, path)
+    }
 
-pub fn mock_break_policy(id: &str) -> Mock {
-    with_fixture(
-        "GET",
-        &format!("/time_tracking/api/time_entry_break_policies/{id}"),
-        "break_policy",
-    )
-    .create()
+    pub fn url(&self) -> String {
+        self.server.url()
+    }
+
+    fn default_mock<P: Into<Matcher>>(&mut self, method: &str, path: P) -> Mock {
+        self.server
+            .mock(method, path)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .match_header("authorization", "Bearer access-token")
+    }
+
+    pub fn with_fixture(&mut self, method: &str, path: &str, fixture: &str) -> Mock {
+        let file = format!("{}/fixtures/{fixture}.json", env!("CARGO_MANIFEST_DIR"));
+        self.default_mock(method, path).with_body_from_file(file)
+    }
+
+    pub fn mock_active_policy(&mut self) -> Mock {
+        self.with_fixture(
+            "GET",
+            "/time_tracking/api/time_entry_policies/get_active_policy",
+            "active_policy",
+        )
+        .create()
+    }
+
+    pub fn mock_break_policy(&mut self, id: &str) -> Mock {
+        self.with_fixture(
+            "GET",
+            &format!("/time_tracking/api/time_entry_break_policies/{id}"),
+            "break_policy",
+        )
+        .create()
+    }
 }

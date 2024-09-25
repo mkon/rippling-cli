@@ -7,7 +7,7 @@ use clap::Subcommand;
 use core::time::Duration;
 use indicatif::ProgressBar;
 use inquire::{Password, Text};
-use rippling_api::{self, time_entries::TimeEntryBreak, Session};
+use rippling_api::{self, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::persistence::Settings;
@@ -63,7 +63,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     ApiError(rippling_api::Error),
-    AlreadyOnBreak(TimeEntryBreak),
+    AlreadyOnBreak,
     NotClockedIn,
     NotOnBreak,
     NoManualBreakType,
@@ -75,7 +75,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ApiError(e) => write!(f, "{e}"),
-            Self::AlreadyOnBreak(_) => write!(f, "Already on a break"),
+            Self::AlreadyOnBreak => write!(f, "Already on a break"),
             Self::NotClockedIn => write!(f, "Not clocked in"),
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
@@ -144,19 +144,11 @@ fn authenticate(cfg: &Settings) {
 }
 
 fn get_session() -> Session {
-    #[cfg(not(test))]
     let session = {
         let state = crate::persistence::State::load();
         let mut s = Session::new(None, state.access_token.unwrap());
         s.company = state.company_id;
         s.role = state.role_id;
-        s
-    };
-    #[cfg(test)]
-    let session = {
-        let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
-        let mut s = Session::new(Some(url), "access-token".into());
-        s.set_company_and_role("some-company-id".into(), "some-role-id".into());
         s
     };
     session
@@ -184,13 +176,6 @@ where
     E: std::fmt::Display,
 {
     wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
-}
-
-fn with_spinner<R, F: FnOnce() -> R>(f: F) -> R {
-    let s = start_spinner();
-    let res = f();
-    s.finish_and_clear();
-    res
 }
 
 fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)

@@ -129,8 +129,8 @@ impl Session {
 
 #[cfg(test)]
 /// Helper function for DRY tests
-pub fn test_session() -> Session {
-    let url = Url::parse(&utilities::mocking::server_url()).unwrap();
+pub fn test_session(server: &utilities::mocking::FakeRippling) -> Session {
+    let url = Url::parse(&server.url()).unwrap();
     Session {
         access_token: "access-token".into(),
         company: Some("some-company-id".into()),

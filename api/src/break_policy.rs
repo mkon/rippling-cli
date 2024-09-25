@@ -93,9 +93,10 @@ mod tests {
 
     #[test]
     fn it_can_fetch_a_break_policy() {
-        let _m = mocking::mock_break_policy("policy-id");
+        let mut server = mocking::FakeRippling::new();
+        let _m = server.mock_break_policy("policy-id");
 
-        let policy = fetch(&crate::session::test_session(), "policy-id").unwrap();
+        let policy = fetch(&crate::session::test_session(&server), "policy-id").unwrap();
         let mybreak = policy.manual_break_type().unwrap();
         assert_eq!(mybreak.id, "break-id-1");
         assert_eq!(mybreak.description, "Lunch Break - Manually clock in/out");
@@ -103,9 +104,10 @@ mod tests {
 
     #[test]
     fn it_can_fetch_active_policy() {
-        let _m = mocking::mock_active_policy();
+        let mut server = mocking::FakeRippling::new();
+        let _m = server.mock_active_policy();
 
-        let policy = active_policy(&crate::session::test_session()).unwrap();
+        let policy = active_policy(&crate::session::test_session(&server)).unwrap();
         assert_eq!(policy.break_policy, "some-break-policy-id");
         assert_eq!(policy.time_policy, "some-policy-id");
         assert_eq!(policy.role_overrides.role_properties.default_timezone, "Europe/Berlin");

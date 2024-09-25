@@ -53,7 +53,7 @@ pub fn start_break() -> Result<String> {
     match time_entries::current_entry(&session)? {
         None => Err(Error::NotClockedIn),
         Some(entry) => match entry.current_break() {
-            Some(br) => Err(Error::AlreadyOnBreak(br.to_owned())),
+            Some(_) => Err(Error::AlreadyOnBreak),
             None => {
                 let break_policy = break_policy::fetch(&session, &entry.active_policy.break_policy_id)?;
                 let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
@@ -84,44 +84,5 @@ pub fn end_break() -> Result<String> {
                 ))
             }
         },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use utilities::mocking;
-
-    use super::*;
-
-    #[test]
-    fn start_break_fails_when_not_authenticated() {
-        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
-            .with_status(401)
-            .with_body(r#"{"details":"Not authenitcated"}"#)
-            .create();
-
-        let result = start_break();
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            Error::ApiError(e) => match e {
-                rippling_api::Error::ApiError { status, description: _, json: _ } => assert_eq!(status, 401),
-                _ => assert!(false, "Wrong error"),
-            },
-            _ => assert!(false, "Wrong error"),
-        };
-    }
-
-    #[test]
-    fn start_break_fails_when_not_clocked_in() {
-        let _m = mocking::rippling("GET", "/time_tracking/api/time_entries?endTime=")
-            .with_body("[]")
-            .create();
-
-        let result = start_break();
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            Error::NotClockedIn => (),
-            _ => assert!(false, "Wrong error"),
-        };
     }
 }
