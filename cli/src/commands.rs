@@ -151,13 +151,6 @@ fn get_session() -> Session {
         s.role = state.role_id;
         s
     };
-    // #[cfg(test)]
-    // let session = {
-    //     let url = url::Url::parse(&utilities::mocking::server_url()).unwrap();
-    //     let mut s = Session::new(Some(url), "access-token".into());
-    //     s.set_company_and_role("some-company-id".into(), "some-role-id".into());
-    //     s
-    // };
     session
 }
 
