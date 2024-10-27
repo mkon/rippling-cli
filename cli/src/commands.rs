@@ -1,6 +1,5 @@
 pub mod live;
 pub mod manual_entry;
-pub mod mfa;
 pub mod pto;
 
 use clap::Subcommand;
@@ -110,12 +109,20 @@ pub fn execute(command: &Commands) {
 }
 
 fn get_session() -> Session {
+    let settings = crate::persistence::Settings::load();
     let session = {
-        let settings = crate::persistence::Settings::load();
-        let state = crate::persistence::State::load();
+        let mut state = crate::persistence::State::load();
         let mut s = Session::new(None, settings.access_token.unwrap());
         s.company = state.company_id;
         s.role = state.role_id;
+        if s.company.is_none() || s.role.is_none() {
+            let data = rippling_api::account_info::fetch(&s).expect("Failed to fetch account info");
+            s.company = Some(data.role.company.id);
+            s.role = Some(data.role.id.id);
+            state.company_id = s.company.clone();
+            state.role_id = s.role.clone();
+            state.store();
+        }
         s
     };
     session

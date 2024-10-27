@@ -15,6 +15,8 @@ pub struct AccountInfo {
 
 #[derive(Debug, Deserialize)]
 pub struct AccountInfoRole {
+    #[serde(rename = "_id")]
+    pub id: Oid,
     pub company: Oid,
 }
 
