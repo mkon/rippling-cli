@@ -1,12 +1,10 @@
 pub mod live;
 pub mod manual_entry;
-pub mod mfa;
 pub mod pto;
 
 use clap::Subcommand;
 use core::time::Duration;
 use indicatif::ProgressBar;
-use inquire::{Password, Text};
 use rippling_api::{self, Session};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
@@ -23,9 +21,6 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigureCommands,
     },
-
-    /// Authenticate against rippling
-    Authenticate,
 
     /// Clock-in Status
     Status,
@@ -48,14 +43,11 @@ pub enum Commands {
 
     /// Manually add entry for a day
     Manual(manual_entry::Command),
-
-    /// Multi Factor Authentication flows
-    Mfa(mfa::Command),
 }
 
 #[derive(Debug, Subcommand)]
 pub enum ConfigureCommands {
-    Username { value: String },
+    AccessToken { value: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -100,7 +92,6 @@ pub fn execute(command: &Commands) {
     let mut cfg = Settings::load();
 
     match command {
-        Commands::Authenticate => authenticate(&cfg),
         Commands::ClockIn => live::clock_in_spinner(),
         Commands::ClockOut => live::clock_out_spinner(),
         Commands::Status => live::status_spinner(),
@@ -108,59 +99,33 @@ pub fn execute(command: &Commands) {
         Commands::EndBreak => live::end_break_spinner(),
         Commands::Configure { command } => {
             match command {
-                ConfigureCommands::Username { value } => cfg.username = Some(value.clone()),
+                ConfigureCommands::AccessToken { value } => cfg.access_token = Some(value.to_string()),
             }
 
             cfg.store();
         }
         Commands::Manual(cmd) => manual_entry::execute(cmd),
-        Commands::Mfa(command) => mfa::execute(command),
     };
-}
-
-fn authenticate(cfg: &Settings) {
-    let client = rippling_api::PublicClient::initialize_from_remote().unwrap();
-    let username = match &cfg.username {
-        None => Text::new("Enter your user name").prompt().unwrap(),
-        Some(value) => value.clone(),
-    };
-    let password = Password::new("Enter your password")
-        .without_confirmation()
-        .prompt()
-        .unwrap();
-
-    let s = start_spinner();
-    match client.authenticate(&username, &password) {
-        Ok(mut session) => {
-            let info = rippling_api::account_info::fetch(&session).expect("Failed to query account info");
-            session.set_company_and_role(info.role.company.id, info.id);
-            save_session(&session);
-            s.finish_with_message("Authentication successfull");
-        }
-        _ => {
-            s.finish_with_message("Authentication failed!");
-        }
-    }
 }
 
 fn get_session() -> Session {
+    let settings = crate::persistence::Settings::load();
     let session = {
-        let state = crate::persistence::State::load();
-        let mut s = Session::new(None, state.access_token.unwrap());
+        let mut state = crate::persistence::State::load();
+        let mut s = Session::new(None, settings.access_token.unwrap());
         s.company = state.company_id;
         s.role = state.role_id;
+        if s.company.is_none() || s.role.is_none() {
+            let data = rippling_api::account_info::fetch(&s).expect("Failed to fetch account info");
+            s.company = Some(data.role.company.id);
+            s.role = Some(data.role.id.id);
+            state.company_id = s.company.clone();
+            state.role_id = s.role.clone();
+            state.store();
+        }
         s
     };
     session
-}
-
-fn save_session(session: &Session) {
-    let state = crate::persistence::State {
-        access_token: Some(session.access_token.clone()),
-        company_id: session.company.clone(),
-        role_id: session.role.clone(),
-    };
-    state.store();
 }
 
 fn today() -> Date {

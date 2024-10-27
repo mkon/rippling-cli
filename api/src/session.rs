@@ -84,22 +84,8 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(url: Option<Url>, token: String) -> Self {
-        let url = url.unwrap_or(super::default_root());
-        Self { access_token: token, company: None, role: None, url }
-    }
-
-    pub fn set_company_and_role(&mut self, company: String, role: String) {
-        self.company = Some(company);
-        self.role = Some(role);
-    }
-
     pub fn company(&self) -> Option<&str> {
         self.company.as_ref().map(|s| s.as_str())
-    }
-
-    pub fn role(&self) -> Option<&str> {
-        self.role.as_ref().map(|s| s.as_str())
     }
 
     pub fn get(&self, path: &str) -> Request {
@@ -108,6 +94,11 @@ impl Session {
 
     pub fn get_json<J: DeserializeOwned>(&self, path: &str) -> Result<J> {
         self.request(Method::GET, path).send()?.parse_json::<J>()
+    }
+
+    pub fn new(url: Option<Url>, token: String) -> Self {
+        let url = url.unwrap_or(super::default_root());
+        Self { access_token: token, company: None, role: None, url }
     }
 
     pub fn post(&self, path: &str) -> Request {
@@ -124,6 +115,15 @@ impl Session {
             builder = builder.header("role", value.to_owned());
         }
         builder
+    }
+
+    pub fn role(&self) -> Option<&str> {
+        self.role.as_ref().map(|s| s.as_str())
+    }
+
+    pub fn set_company_and_role(&mut self, company: String, role: String) {
+        self.company = Some(company);
+        self.role = Some(role);
     }
 }
 
