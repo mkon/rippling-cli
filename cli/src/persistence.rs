@@ -17,29 +17,6 @@ fn store<T: Serialize>(name: &str, cfg: T) {
     confy::store(APP_NAME, name, cfg).expect(&format!("Could not write {name}"))
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Settings {
-    pub access_token: Option<String>,
-}
-
-impl ::std::default::Default for Settings {
-    fn default() -> Self {
-        Self { access_token: None }
-    }
-}
-
-impl Settings {
-    const CONFIG_NAME: &'static str = "config";
-
-    pub fn load() -> Self {
-        load::<Self>(Self::CONFIG_NAME)
-    }
-
-    pub fn store(&self) {
-        store(Self::CONFIG_NAME, self)
-    }
-}
-
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct State {
     pub company_id: Option<String>,
