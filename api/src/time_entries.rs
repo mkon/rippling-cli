@@ -15,8 +15,7 @@ impl super::Client {
         let entry: TimeEntry = self
             .post("time_tracking/api/time_entries")
             .send_json(&body)?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entry)
     }
 
@@ -26,8 +25,7 @@ impl super::Client {
             .get("time_tracking/api/time_entries")
             .query_pairs(query)
             .call()?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entries.into_iter().next())
     }
 
@@ -35,8 +33,7 @@ impl super::Client {
         let entry: TimeEntry = self
             .post(&format!("time_tracking/api/time_entries/{id}/start_break"))
             .send_json(ureq::json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entry)
     }
 
@@ -44,8 +41,7 @@ impl super::Client {
         let entry: TimeEntry = self
             .post(&format!("time_tracking/api/time_entries/{id}/end_break"))
             .send_json(ureq::json!({"source": "WEB_CLOCK", "break_type": break_type_id}))?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entry)
     }
 
@@ -53,8 +49,7 @@ impl super::Client {
         let entry: TimeEntry = self
             .post("time_tracking/api/time_entries/start_clock")
             .send_json(ureq::json!({"source": "WEB_CLOCK", "role": self.role().clone().unwrap()}))?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entry)
     }
 
@@ -62,8 +57,7 @@ impl super::Client {
         let entry: TimeEntry = self
             .post(&format!("time_tracking/api/time_entries/{id}/stop_clock"))
             .send_json(ureq::json!({"source": "WEB_CLOCK"}))?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Result::Ok(entry)
     }
 }

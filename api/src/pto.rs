@@ -9,8 +9,7 @@ impl crate::Client {
         let holidays: Vec<HolidaysOfYear> = self
             .post(&format!("pto/api/get_holiday_calendar/"))
             .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Ok(holidays)
     }
 
@@ -21,8 +20,7 @@ impl crate::Client {
             .get("pto/api/leave_requests/")
             .query_pairs(query)
             .call()?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Ok(requests)
     }
 }

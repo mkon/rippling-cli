@@ -4,7 +4,7 @@ use super::{Error, Result};
 
 impl super::Client {
     pub fn account_info(&self) -> Result<AccountInfo> {
-        let list: Vec<AccountInfo> = self.get("auth_ext/get_account_info/").call()?.into_json().unwrap();
+        let list: Vec<AccountInfo> = self.get("auth_ext/get_account_info/").call()?.into_json()?;
         list.into_iter().next().ok_or(Error::UnexpectedPayload)
     }
 }

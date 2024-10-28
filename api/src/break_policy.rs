@@ -9,8 +9,7 @@ impl super::Client {
         let mut map: HashMap<String, ActivePolicy> = self
             .get("time_tracking/api/time_entry_policies/get_active_policy")
             .call()?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         map.remove(self.role().as_ref().unwrap())
             .ok_or(Error::UnexpectedPayload)
     }
@@ -19,8 +18,7 @@ impl super::Client {
         let break_policy: BreakPolicy = self
             .get(&format!("time_tracking/api/time_entry_break_policies/{id}"))
             .call()?
-            .into_json()
-            .unwrap();
+            .into_json()?;
         Ok(break_policy)
     }
 }

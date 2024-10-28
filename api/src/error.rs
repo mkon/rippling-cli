@@ -30,6 +30,12 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::Generic(format!("{}", value))
+    }
+}
+
 impl From<url::ParseError> for Error {
     fn from(value: url::ParseError) -> Self {
         Error::Generic(format!("{}", value))
