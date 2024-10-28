@@ -15,7 +15,7 @@ impl crate::Client {
 
     pub fn leave_requests(&self) -> Result<Vec<LeaveRequest>> {
         let role = self.role().unwrap();
-        let query: Vec<(&str, &str)> = vec![("role", role)];
+        let query: Vec<(&str, &str)> = vec![("role", role), ("status", "APPROVED")];
         let requests: Vec<LeaveRequest> = self
             .get("pto/api/leave_requests/")
             .query_pairs(query)
@@ -78,7 +78,11 @@ mod tests {
     fn it_can_fetch_leave_requests() {
         let (mut server, client) = setup();
         let _m = server
-            .with_fixture("GET", "/pto/api/leave_requests/?role=some-role-id", "leave_requests")
+            .with_fixture(
+                "GET",
+                "/pto/api/leave_requests/?role=some-role-id&status=APPROVED",
+                "leave_requests",
+            )
             .create();
         let data = client.leave_requests().unwrap();
         assert_eq!(data.len(), 2);
