@@ -90,40 +90,16 @@ impl From<rippling_api::Error> for Error {
 
 pub fn execute(command: &Commands) -> Result<()> {
     match command {
-        Commands::ClockIn => live::clock_in()?,
-        Commands::ClockOut => live::clock_out()?,
-        Commands::Status => live::status()?,
-        Commands::StartBreak => live::start_break()?,
-        Commands::EndBreak => live::end_break()?,
+        Commands::ClockIn => live::clock_in(),
+        Commands::ClockOut => live::clock_out(),
+        Commands::Status => live::status(),
+        Commands::StartBreak => live::start_break(),
+        Commands::EndBreak => live::end_break(),
         Commands::Configure { command } => match command {
             ConfigureCommands::AccessToken { value } => set_access_token(value),
         },
-        Commands::Manual(cmd) => manual_entry::execute(cmd)?,
-    };
-    Ok(())
-}
-
-#[macro_export]
-macro_rules! my_spinner {
-    ( $res: expr ) => {{
-        let result = if crate::is_interactive() {
-            {
-                let spinner = crate::commands::start_spinner();
-                let result = $res;
-                spinner.finish_and_clear();
-                result
-            }
-        } else {
-            $res
-        };
-        match result {
-            Ok(v) => v,
-            Err(e) => {
-                println!("Error: {}", e);
-                return;
-            }
-        }
-    }};
+        Commands::Manual(cmd) => manual_entry::execute(cmd),
+    }
 }
 
 #[macro_export]
@@ -142,15 +118,16 @@ macro_rules! spinner_wrap {
     }};
 }
 
-fn set_access_token(token: &str) {
+fn set_access_token(token: &str) -> Result<()> {
     let client: Client = Client::new(token.to_string());
-    let info = my_spinner!(client.account_info());
+    let info = spinner_wrap!(client.account_info())?;
     let state = State {
         company_id: Some(info.role.company.id),
         role_id: Some(info.id),
         token: Some(token.to_string()),
     };
     state.store();
+    Ok(())
 }
 
 fn today() -> Date {
