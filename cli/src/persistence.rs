@@ -27,7 +27,6 @@ pub struct State {
 impl State {
     const CONFIG_NAME: &'static str = "state";
 
-    #[allow(dead_code)]
     pub fn load() -> Self {
         load::<Self>(Self::CONFIG_NAME)
     }
