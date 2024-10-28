@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-attohttpc = { version = "0.28.0", features = ["basic-auth", "json"] }
 json_value_merge = ">=2"
 regex = "1.10.6"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
+ureq = {version = "2.10.1", features = ["json"] }
 url = "2.3.1"
 
 [dev-dependencies]

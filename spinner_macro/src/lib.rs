@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
 #[proc_macro_attribute]
-pub fn spinner_wrap(arg: TokenStream, item: TokenStream) -> TokenStream {
+pub fn fn_spinner_wrap(arg: TokenStream, item: TokenStream) -> TokenStream {
     let vfn = venial::parse_declaration(item.clone().into()).unwrap();
     let mut out = item;
 
