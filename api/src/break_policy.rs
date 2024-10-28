@@ -10,8 +10,7 @@ impl super::Client {
             .get("time_tracking/api/time_entry_policies/get_active_policy")
             .call()?
             .into_json()?;
-        map.remove(self.role().as_ref().unwrap())
-            .ok_or(Error::UnexpectedPayload)
+        map.remove(self.role().unwrap()).ok_or(Error::UnexpectedPayload)
     }
 
     pub fn break_policy(&self, id: &str) -> Result<BreakPolicy> {

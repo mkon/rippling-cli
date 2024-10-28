@@ -14,7 +14,7 @@ impl crate::Client {
     }
 
     pub fn leave_requests(&self) -> Result<Vec<LeaveRequest>> {
-        let role = self.role().as_ref().unwrap();
+        let role = self.role().unwrap();
         let query: Vec<(&str, &str)> = vec![("role", role)];
         let requests: Vec<LeaveRequest> = self
             .get("pto/api/leave_requests/")
