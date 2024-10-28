@@ -40,52 +40,62 @@ pub fn clock_in() -> Result<()> {
 
 pub fn clock_out() -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
-    match current {
-        Some(entry) => {
-            client.end_clock(&entry.id)?;
-            println!("Clocked out!");
-            Ok(())
+    spinner_wrap!({
+        let current = client.current_time_entry()?;
+        match current {
+            Some(entry) => {
+                client.end_clock(&entry.id)?;
+                println!("Clocked out!");
+                Ok(())
+            }
+            None => Err(Error::NotClockedIn),
         }
-        None => Err(Error::NotClockedIn),
-    }
+    })
 }
 
 pub fn start_break() -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    spinner_wrap!({
+        let current = client.current_time_entry()?;
 
-    match current {
-        None => Err(Error::NotClockedIn),
-        Some(entry) => if entry.current_break().is_some() { Err(Error::AlreadyOnBreak) } else {
-            let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
-            let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
-            let entry = client.start_break(&entry.id, &break_type.id)?;
-            let brk = entry.current_break().unwrap().to_owned();
-            println!("Started break at {}!", local_time_format(brk.start_time));
-            Ok(())
-        },
-    }
+        match current {
+            None => Err(Error::NotClockedIn),
+            Some(entry) => {
+                if entry.current_break().is_some() {
+                    Err(Error::AlreadyOnBreak)
+                } else {
+                    let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
+                    let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
+                    let entry = client.start_break(&entry.id, &break_type.id)?;
+                    let brk = entry.current_break().unwrap().to_owned();
+                    println!("Started break at {}!", local_time_format(brk.start_time));
+                    Ok(())
+                }
+            }
+        }
+    })
 }
 
 pub fn end_break() -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    spinner_wrap!({
+        let current = client.current_time_entry()?;
 
-    match current {
-        None => Err(Error::NotClockedIn),
-        Some(entry) => match entry.current_break() {
-            None => Err(Error::NotOnBreak),
-            Some(br) => {
-                let res = client.end_break(&entry.id, &br.break_type_id)?;
-                let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
-                println!(
-                    "Stopped break at {}, after {} hours!",
-                    local_time_format(brk.end_time.unwrap()),
-                    format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
-                );
-                Ok(())
-            }
-        },
-    }
+        match current {
+            None => Err(Error::NotClockedIn),
+            Some(entry) => match entry.current_break() {
+                None => Err(Error::NotOnBreak),
+                Some(br) => {
+                    let res = client.end_break(&entry.id, &br.break_type_id)?;
+                    let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
+                    println!(
+                        "Stopped break at {}, after {} hours!",
+                        local_time_format(brk.end_time.unwrap()),
+                        format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
+                    );
+                    Ok(())
+                }
+            },
+        }
+    })
 }
