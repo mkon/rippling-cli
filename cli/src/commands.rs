@@ -5,10 +5,10 @@ pub mod pto;
 use clap::Subcommand;
 use core::time::Duration;
 use indicatif::ProgressBar;
-use rippling_api::{self, Session};
+use rippling_api::{self, Client};
 use time::{macros::format_description, Date, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
-use crate::persistence::Settings;
+use crate::persistence::State;
 
 use self::pto::CheckOutcome;
 
@@ -88,44 +88,46 @@ impl From<rippling_api::Error> for Error {
     }
 }
 
-pub fn execute(command: &Commands) {
-    let mut cfg = Settings::load();
-
+pub fn execute(command: &Commands) -> Result<()> {
     match command {
-        Commands::ClockIn => live::clock_in_spinner(),
-        Commands::ClockOut => live::clock_out_spinner(),
-        Commands::Status => live::status_spinner(),
-        Commands::StartBreak => live::start_break_spinner(),
-        Commands::EndBreak => live::end_break_spinner(),
-        Commands::Configure { command } => {
-            match command {
-                ConfigureCommands::AccessToken { value } => cfg.access_token = Some(value.to_string()),
-            }
-
-            cfg.store();
-        }
+        Commands::ClockIn => live::clock_in(),
+        Commands::ClockOut => live::clock_out(),
+        Commands::Status => live::status(),
+        Commands::StartBreak => live::start_break(),
+        Commands::EndBreak => live::end_break(),
+        Commands::Configure { command } => match command {
+            ConfigureCommands::AccessToken { value } => set_access_token(value),
+        },
         Commands::Manual(cmd) => manual_entry::execute(cmd),
-    };
+    }
 }
 
-fn get_session() -> Session {
-    let settings = crate::persistence::Settings::load();
-    let session = {
-        let mut state = crate::persistence::State::load();
-        let mut s = Session::new(None, settings.access_token.unwrap());
-        s.company = state.company_id;
-        s.role = state.role_id;
-        if s.company.is_none() || s.role.is_none() {
-            let data = rippling_api::account_info::fetch(&s).expect("Failed to fetch account info");
-            s.company = Some(data.role.company.id);
-            s.role = Some(data.role.id.id);
-            state.company_id = s.company.clone();
-            state.role_id = s.role.clone();
-            state.store();
+#[macro_export]
+macro_rules! spinner_wrap {
+    ( $res: expr ) => {{
+        if crate::is_interactive() {
+            {
+                let spinner = crate::commands::start_spinner();
+                let result = $res;
+                spinner.finish_and_clear();
+                result
+            }
+        } else {
+            $res
         }
-        s
+    }};
+}
+
+fn set_access_token(token: &str) -> Result<()> {
+    let client: Client = Client::new(token.to_string());
+    let info = spinner_wrap!(client.account_info())?;
+    let state = State {
+        company_id: Some(info.role.company.id),
+        role_id: Some(info.id),
+        token: Some(token.to_string()),
     };
-    session
+    state.store();
+    Ok(())
 }
 
 fn today() -> Date {
@@ -134,36 +136,7 @@ fn today() -> Date {
     OffsetDateTime::now_utc().to_offset(local_offset()).date()
 }
 
-fn wrap_in_spinner<T, E, Fn, Ok>(f: Fn, ok: Ok)
-where
-    Fn: FnOnce() -> std::result::Result<T, E>,
-    Ok: FnOnce(T) -> String,
-    E: std::fmt::Display,
-{
-    wrap_in_spinner_or(f, ok, |e| format!("Error: {e}"))
-}
-
-fn wrap_in_spinner_or<T, E, Fn, Ok, Er>(f: Fn, ok: Ok, er: Er)
-where
-    Fn: FnOnce() -> std::result::Result<T, E>,
-    Ok: FnOnce(T) -> String,
-    Er: FnOnce(E) -> String,
-{
-    if super::INTERACTIVE.load(std::sync::atomic::Ordering::Relaxed) {
-        let s = start_spinner();
-        match f() {
-            Ok(t) => s.finish_with_message(ok(t)),
-            Err(e) => s.finish_with_message(er(e)),
-        }
-    } else {
-        match f() {
-            Ok(t) => println!("{}", ok(t)),
-            Err(e) => println!("{}", er(e)),
-        }
-    }
-}
-
-fn start_spinner() -> ProgressBar {
+pub(crate) fn start_spinner() -> ProgressBar {
     let s = ProgressBar::new_spinner();
     s.set_message("Connecting with rippling...");
     s.enable_steady_tick(Duration::new(0, 100_000_000));

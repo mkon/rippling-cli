@@ -1,11 +1,14 @@
+use crate::persistence;
+use crate::spinner_wrap;
+
 use super::{format_hours, local_time_format};
 use super::{Error, Result};
-use rippling_api::{break_policy, time_entries};
-use spinner_macro::spinner_wrap;
+use rippling_api::Client;
 
-#[spinner_wrap]
-pub fn status() -> Result<String> {
-    Ok(match time_entries::current_entry(&super::get_session())? {
+pub fn status() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let current = spinner_wrap!(client.current_time_entry())?;
+    match current {
         Some(entry) => {
             let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
 
@@ -22,66 +25,70 @@ pub fn status() -> Result<String> {
                 regular_hours_formatted, unpaid_break_hours_formatted
             ));
 
-            msg
+            println!("{msg}");
         }
-        None => "Not clocked in!".to_owned(),
-    })
+        None => println!("Not clocked in!"),
+    }
+    Ok(())
 }
 
-#[spinner_wrap]
-pub fn clock_in() -> Result<String> {
-    let entry = time_entries::start_clock(&super::get_session())?;
-    Ok(format!("Clocked in since {}!", local_time_format(entry.start_time)))
+pub fn clock_in() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let entry = spinner_wrap!(client.start_clock())?;
+    println!("Clocked in since {}!", local_time_format(entry.start_time));
+    Ok(())
 }
 
-#[spinner_wrap]
-pub fn clock_out() -> Result<String> {
-    let session = super::get_session();
-    match time_entries::current_entry(&session)? {
+pub fn clock_out() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let current = spinner_wrap!(client.current_time_entry())?;
+    match current {
         Some(entry) => {
-            time_entries::end_clock(&session, &entry.id)?;
-            Ok(String::from("Clocked out!"))
+            client.end_clock(&entry.id)?;
+            println!("Clocked out!");
+            Ok(())
         }
         None => Err(Error::NotClockedIn),
     }
 }
 
-#[spinner_wrap]
-pub fn start_break() -> Result<String> {
-    let session = super::get_session();
+pub fn start_break() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let current = spinner_wrap!(client.current_time_entry())?;
 
-    match time_entries::current_entry(&session)? {
+    match current {
         None => Err(Error::NotClockedIn),
         Some(entry) => match entry.current_break() {
             Some(_) => Err(Error::AlreadyOnBreak),
             None => {
-                let break_policy = break_policy::fetch(&session, &entry.active_policy.break_policy_id)?;
+                let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
                 let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
-                let entry = time_entries::start_break(&session, &entry.id, &break_type.id)?;
+                let entry = client.start_break(&entry.id, &break_type.id)?;
                 let brk = entry.current_break().unwrap().to_owned();
-                Ok(format!("Started break at {}!", local_time_format(brk.start_time)))
+                println!("Started break at {}!", local_time_format(brk.start_time));
+                Ok(())
             }
         },
     }
 }
 
-#[spinner_wrap]
-pub fn end_break() -> Result<String> {
-    let session = super::get_session();
+pub fn end_break() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let current = spinner_wrap!(client.current_time_entry())?;
 
-    let current = time_entries::current_entry(&session)?;
     match current {
         None => Err(Error::NotClockedIn),
         Some(entry) => match entry.current_break() {
             None => Err(Error::NotOnBreak),
             Some(br) => {
-                let res = time_entries::end_break(&session, &entry.id, &br.break_type_id)?;
+                let res = client.end_break(&entry.id, &br.break_type_id)?;
                 let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
-                Ok(format!(
+                println!(
                     "Stopped break at {}, after {} hours!",
                     local_time_format(brk.end_time.unwrap()),
                     format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
-                ))
+                );
+                Ok(())
             }
         },
     }

@@ -1,18 +1,15 @@
 use clap::{arg, Parser};
 use inquire::Confirm;
 use regex::Regex;
-use spinner_macro::spinner_wrap;
 use std::{result::Result as StdResult, thread};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time};
 
-use super::pto::{self, CheckOutcome};
+use crate::{persistence, spinner_wrap};
 
-use rippling_api::{
-    self,
-    break_policy::{self, BreakPolicy},
-    time_entries::{NewTimeEntry, TimeEntry},
-    Session,
-};
+use super::pto::{self, CheckOutcome};
+use super::Result;
+
+use rippling_api::{self, break_policy::BreakPolicy, time_entries::NewTimeEntry, Client};
 
 #[derive(Clone, Debug)]
 pub struct TimeRange {
@@ -37,28 +34,25 @@ pub struct Command {
 }
 
 /// Entrypoint for this module
-pub fn execute(cmd: &Command) {
+pub fn execute(cmd: &Command) -> Result<()> {
     let date = super::today()
         .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
         .unwrap();
     draft_entry(date, &cmd.ranges, cmd.check, cmd.yes)
 }
 
-fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
+fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) -> Result<()> {
     let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, rippling_api::Error> {
-        let session = super::get_session();
-        let policy = break_policy::active_policy(&session)?;
-        break_policy::fetch(&session, &policy.break_policy)
+        let client: Client = persistence::state().into();
+        let policy = client.active_break_policy()?;
+        client.break_policy(&policy.break_policy)
     });
-
-    let session = super::get_session();
 
     if check {
         let pto = pto::check(date).unwrap();
         if let CheckOutcome::WorkingDay = pto {
         } else {
-            println!("{}", super::Error::NoWorkingDay(pto));
-            return;
+            return Err(super::Error::NoWorkingDay(pto));
         }
     }
 
@@ -87,25 +81,24 @@ fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) {
     }
 
     if yes {
-        submit_entry_spinner(&session, entry);
+        submit_entry(entry)?;
     } else {
         if Confirm::new(&format!("Create entry {}?", entry)).prompt().unwrap() {
-            submit_entry_spinner(&session, entry);
+            submit_entry(entry)?;
         }
     }
+    Ok(())
 }
 
-#[spinner_wrap(entry_to_string)]
-fn submit_entry(session: &Session, entry: NewTimeEntry) -> super::Result<TimeEntry> {
-    Ok(rippling_api::time_entries::create_entry(&session, &entry)?)
-}
-
-fn entry_to_string(entry: TimeEntry) -> String {
-    format!(
+fn submit_entry(entry: NewTimeEntry) -> super::Result<()> {
+    let client: Client = persistence::state().into();
+    let entry = spinner_wrap!(client.create_time_entry(&entry))?;
+    println!(
         "Added entry from {} to {}",
         super::local_time_format(entry.start_time),
         super::local_time_format(entry.end_time.unwrap())
-    )
+    );
+    Ok(())
 }
 
 fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {

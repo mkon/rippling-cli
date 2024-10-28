@@ -4,7 +4,6 @@ resolver = "2"
 members = [
     "api",
     "cli",
-    "spinner_macro",
     "utilities",
 ]
 

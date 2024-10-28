@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
-# console = "0.15.5"
 confy = "0.6.1"
 directories = "5.0.1"
 env_logger = "0.11.5"
@@ -18,7 +17,6 @@ regex = "1.10.6"
 rippling-api = { path = "../api" }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
-spinner_macro = { path = "../spinner_macro" }
 time = { version = "0.3.17", features = ["local-offset", "macros", "serde", "serde-human-readable"] }
 tzdb = "0.5.3"
 url = "2.3.1"

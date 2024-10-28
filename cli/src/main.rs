@@ -1,17 +1,17 @@
 mod commands;
-mod persistence;
+pub mod persistence;
 
 use std::{
     fs::{self, File},
     io::IsTerminal,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::OnceLock,
 };
 
 use clap::Parser;
 use commands::Commands;
 use directories::ProjectDirs;
 
-static INTERACTIVE: AtomicBool = AtomicBool::new(true);
+static INTERACTIVE: OnceLock<bool> = OnceLock::new();
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -20,11 +20,14 @@ struct Cli {
     command: Commands,
 }
 
-fn main() {
+fn main() -> commands::Result<()> {
     init_logging();
     let cli = Cli::parse();
-    INTERACTIVE.store(std::io::stdout().is_terminal(), Ordering::Relaxed);
     commands::execute(&cli.command)
+}
+
+fn is_interactive() -> bool {
+    *INTERACTIVE.get_or_init(|| std::io::stdout().is_terminal())
 }
 
 fn init_logging() {

@@ -1,15 +1,12 @@
 pub mod account_info;
 pub mod break_policy;
+pub mod client;
 mod error;
-pub mod mfa;
 pub mod pto;
-mod public;
-mod session;
 pub mod time_entries;
 
+pub use client::Client;
 pub use error::Error;
-pub use public::Client as PublicClient;
-pub use session::Session;
 
 const DEFAULT_HOST: &str = "https://app.rippling.com";
 const API_ROOT: &str = "/api/";

@@ -2,22 +2,27 @@ use serde::Deserialize;
 use serde_json::json;
 use time::Date;
 
-use super::session::Session;
 use super::Result;
 
-pub fn holiday_calendar(session: &Session) -> Result<Vec<HolidaysOfYear>> {
-    session
-        .post(&format!("pto/api/get_holiday_calendar/"))
-        .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
-        .parse_json()
-}
+impl crate::Client {
+    pub fn holiday_calendar(&self) -> Result<Vec<HolidaysOfYear>> {
+        let holidays: Vec<HolidaysOfYear> = self
+            .post(&format!("pto/api/get_holiday_calendar/"))
+            .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
+            .into_json()?;
+        Ok(holidays)
+    }
 
-pub fn leave_requests(session: &Session) -> Result<Vec<LeaveRequest>> {
-    session
-        .get("pto/api/leave_requests/")
-        .param("role", session.role().unwrap())
-        .send()?
-        .parse_json()
+    pub fn leave_requests(&self) -> Result<Vec<LeaveRequest>> {
+        let role = self.role().as_ref().unwrap();
+        let query: Vec<(&str, &str)> = vec![("role", role)];
+        let requests: Vec<LeaveRequest> = self
+            .get("pto/api/leave_requests/")
+            .query_pairs(query)
+            .call()?
+            .into_json()?;
+        Ok(requests)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -57,15 +62,25 @@ mod tests {
     use time::macros::date;
     use utilities::mocking;
 
+    use crate::Client;
+
     use super::*;
+
+    fn setup() -> (mocking::FakeRippling, Client) {
+        let server = mocking::FakeRippling::new();
+        let client = Client::new("access-token".to_owned())
+            .with_root(url::Url::parse(&server.url()).unwrap())
+            .with_company_and_role("some-company-id".to_owned(), "some-role-id".to_owned());
+        (server, client)
+    }
 
     #[test]
     fn it_can_fetch_leave_requests() {
-        let mut server = mocking::FakeRippling::new();
+        let (mut server, client) = setup();
         let _m = server
             .with_fixture("GET", "/pto/api/leave_requests/?role=some-role-id", "leave_requests")
             .create();
-        let data = leave_requests(&crate::session::test_session(&server)).unwrap();
+        let data = client.leave_requests().unwrap();
         assert_eq!(data.len(), 2);
         let days: Vec<Date> = data.into_iter().map(|h| h.start_date).collect();
         assert_eq!(days, vec![date![2022 - 06 - 09], date![2022 - 05 - 23]]);
@@ -73,11 +88,11 @@ mod tests {
 
     #[test]
     fn it_can_fetch_holiday_calendar() {
-        let mut server = mocking::FakeRippling::new();
+        let (mut server, client) = setup();
         let _m = server
             .with_fixture("POST", "/pto/api/get_holiday_calendar/", "holiday_calendar")
             .create();
-        let data = holiday_calendar(&crate::session::test_session(&server)).unwrap();
+        let data = client.holiday_calendar().unwrap();
         assert_eq!(data.len(), 9);
         let y2023 = data.into_iter().find(|y| y.year == 2023).unwrap();
         assert_eq!(y2023.holidays.len(), 13);
