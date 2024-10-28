@@ -254,12 +254,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "const_fn"
-version = "0.4.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "373e9fafaa20882876db20562275ff58d50e0caa2590077fe7ce7bef90211d0d"
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1062,7 +1056,7 @@ dependencies = [
  "serde",
  "serde_json",
  "time",
- "tzdb 0.5.10",
+ "tzdb",
  "url",
  "utilities",
 ]
@@ -1428,29 +1422,15 @@ dependencies = [
 
 [[package]]
 name = "tz-rs"
-version = "0.6.14"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33851b15c848fad2cf4b105c6bb66eb9512b6f6c44a4b13f57c53c73c707e2b4"
-dependencies = [
- "const_fn",
-]
+checksum = "e1450bf2b99397e72070e7935c89facaa80092ac812502200375f1f7d33c71a1"
 
 [[package]]
 name = "tzdb"
-version = "0.5.10"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a18ee5bde3433d683d41859650804a5ad89cad17f153a53f1e6a96e0da2d969"
-dependencies = [
- "iana-time-zone",
- "tz-rs",
- "tzdb 0.6.1",
-]
-
-[[package]]
-name = "tzdb"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b580f6b365fa89f5767cdb619a55d534d04a4e14c2d7e5b9a31e94598687fb1"
+checksum = "0be2ea5956f295449f47c0b825c5e109022ff1a6a53bb4f77682a87c2341fbf5"
 dependencies = [
  "iana-time-zone",
  "tz-rs",
@@ -1459,9 +1439,9 @@ dependencies = [
 
 [[package]]
 name = "tzdb_data"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "654c1ec546942ce0594e8d220e6b8e3899e0a0a8fe70ddd54d32a376dfefe3f8"
+checksum = "00f9bec1454a119a8104557d96fcbe67d25346f085f4aac04b66b75644a8def6"
 dependencies = [
  "tz-rs",
 ]
