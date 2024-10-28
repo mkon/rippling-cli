@@ -36,12 +36,16 @@ pub struct Command {
 /// Entrypoint for this module
 pub fn execute(cmd: &Command) -> Result<()> {
     let date = super::today()
-        .checked_sub(Duration::days(cmd.days_ago.unwrap_or(0) as i64))
+        .checked_sub(Duration::days(i64::from(cmd.days_ago.unwrap_or(0))))
         .unwrap();
-    draft_entry(date, &cmd.ranges, cmd.check, cmd.yes)
+    let entry = draft_entry(date, &cmd.ranges, cmd.check)?;
+    if cmd.yes || Confirm::new(&format!("Create entry {entry}?")).prompt().unwrap() {
+        submit_entry(entry)?;
+    }
+    Ok(())
 }
 
-fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) -> Result<()> {
+fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool) -> Result<NewTimeEntry> {
     let policy_thread = thread::spawn(|| -> StdResult<BreakPolicy, rippling_api::Error> {
         let client: Client = persistence::state().into();
         let policy = client.active_break_policy()?;
@@ -77,17 +81,9 @@ fn draft_entry(date: Date, ranges: &Vec<TimeRange>, check: bool, yes: bool) -> R
     let break_policy = policy_thread.join().unwrap().unwrap();
     let btype = break_policy.manual_break_type().unwrap();
     for pair in events.chunks(2) {
-        entry.add_break(btype.id.to_owned(), pair[0], pair[1]);
+        entry.add_break(btype.id.clone(), pair[0], pair[1]);
     }
-
-    if yes {
-        submit_entry(entry)?;
-    } else {
-        if Confirm::new(&format!("Create entry {}?", entry)).prompt().unwrap() {
-            submit_entry(entry)?;
-        }
-    }
-    Ok(())
+    Ok(entry)
 }
 
 fn submit_entry(entry: NewTimeEntry) -> super::Result<()> {
@@ -135,7 +131,7 @@ fn minimum_break_for(duration: Duration) -> Duration {
     }
     if duration > Duration::hours(9) {
         // after 9hrs up to 30min + 15min
-        dur = dur + (duration - Duration::hours(9)).min(Duration::minutes(15));
+        dur += (duration - Duration::hours(9)).min(Duration::minutes(15));
     }
     dur
 }
@@ -170,7 +166,7 @@ mod tests {
             (555, 45), // 9h 15m
             (600, 45), // 10h
         ];
-        for (w, b) in examples.into_iter() {
+        for (w, b) in examples {
             assert_eq!(super::minimum_break_for(Duration::minutes(w)), Duration::minutes(b));
         }
     }

@@ -48,7 +48,7 @@ impl super::Client {
     pub fn start_clock(&self) -> Result<TimeEntry> {
         let entry: TimeEntry = self
             .post("time_tracking/api/time_entries/start_clock")
-            .send_json(ureq::json!({"source": "WEB_CLOCK", "role": self.role().clone().unwrap()}))?
+            .send_json(ureq::json!({"source": "WEB_CLOCK", "role": self.role().unwrap()}))?
             .into_json()?;
         Result::Ok(entry)
     }
@@ -76,8 +76,8 @@ const TIME_FMT: &[FormatItem] = format_description!("[hour]:[minute]");
 impl NewTimeEntry {
     fn render_breaks(&self) -> String {
         self.breaks.iter().fold(String::new(), |mut a, b| {
-            if a.len() > 0 {
-                a.push_str(", ")
+            if !a.is_empty() {
+                a.push_str(", ");
             }
             a.push_str(&format!(
                 "{}-{}",
@@ -99,7 +99,7 @@ impl std::fmt::Display for NewTimeEntry {
             shift.start_time.format(TIME_FMT).unwrap(),
             shift.end_time.format(TIME_FMT).unwrap()
         );
-        if self.breaks.len() > 0 {
+        if !self.breaks.is_empty() {
             out.push_str(&format!(" (Breaks {})", self.render_breaks()));
         }
         write!(f, "{out}")
@@ -183,10 +183,7 @@ impl TimeEntry {
 
 impl TimeEntryBreak {
     pub fn duration(&self) -> Option<Duration> {
-        match self.end_time {
-            Some(end) => Some(end - self.start_time),
-            None => None,
-        }
+        self.end_time.map(|end| end - self.start_time)
     }
 }
 
@@ -301,7 +298,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        let entry = client.end_clock(&"id").unwrap();
+        let entry = client.end_clock("id").unwrap();
         assert_eq!(
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
@@ -320,8 +317,8 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        client.start_break(&"id", &"break-type-id").unwrap();
-        m.assert()
+        client.start_break("id", "break-type-id").unwrap();
+        m.assert();
     }
 
     #[test]
@@ -336,7 +333,7 @@ mod tests {
             .match_header("role", "some-role-id")
             .create();
 
-        client.end_break(&"id", &"break-type-id").unwrap();
-        m.assert()
+        client.end_break("id", "break-type-id").unwrap();
+        m.assert();
     }
 }

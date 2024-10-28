@@ -75,7 +75,7 @@ impl std::fmt::Display for Error {
             Self::NoWorkingDay(r) => match r {
                 CheckOutcome::Leave => write!(f, "You are on PTO"),
                 CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),
-                CheckOutcome::Weekend(d) => write!(f, "It is a weekend ({})", d),
+                CheckOutcome::Weekend(d) => write!(f, "It is a weekend ({d})"),
                 _ => panic!("Unhandled enum match"),
             },
         }
@@ -105,9 +105,9 @@ pub fn execute(command: &Commands) -> Result<()> {
 #[macro_export]
 macro_rules! spinner_wrap {
     ( $res: expr ) => {{
-        if crate::is_interactive() {
+        if $crate::is_interactive() {
             {
-                let spinner = crate::commands::start_spinner();
+                let spinner = $crate::commands::start_spinner();
                 let result = $res;
                 spinner.finish_and_clear();
                 result
@@ -146,7 +146,7 @@ pub(crate) fn start_spinner() -> ProgressBar {
 fn format_hours(hours: f32) -> String {
     let h = hours.floor();
     let m = (hours.fract() * 60.0).floor();
-    format!("{:1}:{:02}", h, m)
+    format!("{h:1}:{m:02}")
 }
 
 fn local_time_format(datetime: OffsetDateTime) -> String {

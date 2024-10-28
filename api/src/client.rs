@@ -16,12 +16,12 @@ impl Client {
         Self { company: None, role: None, root: default_root(), token }
     }
 
-    pub fn role(&self) -> &Option<String> {
-        &self.role
+    pub fn role(&self) -> Option<&String> {
+        self.role.as_ref()
     }
 
-    pub fn company(&self) -> &Option<String> {
-        &self.company
+    pub fn company(&self) -> Option<&String> {
+        self.company.as_ref()
     }
 
     pub fn with_company_and_role(&self, company: String, role: String) -> Self {
