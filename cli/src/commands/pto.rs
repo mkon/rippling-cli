@@ -34,7 +34,7 @@ pub fn check(date: Date) -> Result<CheckOutcome> {
 fn check_holiday(date: Date) -> Result<Option<Holiday>> {
     let client: Client = persistence::state().into();
     let cal = client.holiday_calendar()?;
-    match cal.into_iter().find(|hy| hy.year as i32 == date.year()) {
+    match cal.into_iter().find(|hy| i32::from(hy.year) == date.year()) {
         Some(year) => Ok(year
             .holidays
             .into_iter()

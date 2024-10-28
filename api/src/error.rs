@@ -26,19 +26,19 @@ impl std::fmt::Display for Error {
 
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
-        Error::Generic(format!("{}", value))
+        Error::Generic(format!("{value}"))
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
-        Error::Generic(format!("{}", value))
+        Error::Generic(format!("{value}"))
     }
 }
 
 impl From<url::ParseError> for Error {
     fn from(value: url::ParseError) -> Self {
-        Error::Generic(format!("{}", value))
+        Error::Generic(format!("{value}"))
     }
 }
 
@@ -59,7 +59,7 @@ impl From<ureq::Error> for Error {
                             },
                             serde_json::Value::Object(obj) if obj.contains_key("detail") => Error::ApiError {
                                 status,
-                                description: obj["detail"].as_str().map(|v| v.to_owned()),
+                                description: obj["detail"].as_str().map(std::borrow::ToOwned::to_owned),
                                 json: Some(data),
                             },
                             _ => Error::ApiError { status, description: None, json: Some(data) },

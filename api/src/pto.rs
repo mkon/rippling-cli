@@ -7,8 +7,8 @@ use super::Result;
 impl crate::Client {
     pub fn holiday_calendar(&self) -> Result<Vec<HolidaysOfYear>> {
         let holidays: Vec<HolidaysOfYear> = self
-            .post(&format!("pto/api/get_holiday_calendar/"))
-            .send_json(&json!({"allow_time_admin": false, "only_payable": false}))?
+            .post("pto/api/get_holiday_calendar/")
+            .send_json(json!({"allow_time_admin": false, "only_payable": false}))?
             .into_json()?;
         Ok(holidays)
     }

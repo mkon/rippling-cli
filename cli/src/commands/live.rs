@@ -21,8 +21,7 @@ pub fn status() -> Result<()> {
             let regular_hours_formatted = format_hours(entry.regular_hours);
             let unpaid_break_hours_formatted = format_hours(entry.unpaid_break_hours);
             msg.push_str(&format!(
-                " (Regular hours: {}, Breaks: {})",
-                regular_hours_formatted, unpaid_break_hours_formatted
+                " (Regular hours: {regular_hours_formatted}, Breaks: {unpaid_break_hours_formatted})"
             ));
 
             println!("{msg}");
@@ -58,16 +57,13 @@ pub fn start_break() -> Result<()> {
 
     match current {
         None => Err(Error::NotClockedIn),
-        Some(entry) => match entry.current_break() {
-            Some(_) => Err(Error::AlreadyOnBreak),
-            None => {
-                let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
-                let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
-                let entry = client.start_break(&entry.id, &break_type.id)?;
-                let brk = entry.current_break().unwrap().to_owned();
-                println!("Started break at {}!", local_time_format(brk.start_time));
-                Ok(())
-            }
+        Some(entry) => if entry.current_break().is_some() { Err(Error::AlreadyOnBreak) } else {
+            let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
+            let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
+            let entry = client.start_break(&entry.id, &break_type.id)?;
+            let brk = entry.current_break().unwrap().to_owned();
+            println!("Started break at {}!", local_time_format(brk.start_time));
+            Ok(())
         },
     }
 }
