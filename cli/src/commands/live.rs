@@ -31,6 +31,24 @@ pub fn status() -> Result<()> {
     Ok(())
 }
 
+pub fn status_compact() -> Result<()> {
+    let client: Client = persistence::state().into();
+    let current = spinner_wrap!(client.current_time_entry())?;
+    match current {
+        Some(entry) => {
+            // If on break, print the break start time
+            if let Some(br) = entry.current_break() {
+                println!("Break since {}", local_time_format(br.start_time));
+            } else {
+                let regular_hours_formatted = format_hours(entry.regular_hours);
+                println!("Working for {regular_hours_formatted}")
+            }
+        }
+        None => println!("Clocked out"),
+    }
+    Ok(())
+}
+
 pub fn clock_in() -> Result<()> {
     let client: Client = persistence::state().into();
     let entry = spinner_wrap!(client.start_clock())?;

@@ -23,7 +23,11 @@ pub enum Commands {
     },
 
     /// Clock-in Status
-    Status,
+    Status {
+        /// Compact format
+        #[arg(short, long, default_value_t = false)]
+        compact: bool,
+    },
 
     /// Clock In
     #[clap(alias = "in")]
@@ -92,7 +96,13 @@ pub fn execute(command: &Commands) -> Result<()> {
     match command {
         Commands::ClockIn => live::clock_in(),
         Commands::ClockOut => live::clock_out(),
-        Commands::Status => live::status(),
+        Commands::Status { compact } => {
+            if *compact {
+                live::status_compact()
+            } else {
+                live::status()
+            }
+        }
         Commands::StartBreak => live::start_break(),
         Commands::EndBreak => live::end_break(),
         Commands::Configure { command } => match command {
