@@ -20,7 +20,8 @@ impl super::Client {
     }
 
     pub fn current_time_entry(&self) -> Result<Option<TimeEntry>> {
-        let query: Vec<(&str, &str)> = vec![("endTime", "")];
+        // Role must be present as URL parameter, otherwise Managers might see employees records as status
+        let query: Vec<(&str, &str)> = vec![("endTime", ""), ("role", self.role().expect("Missing Role"))];
         let entries: Vec<TimeEntry> = self
             .get("time_tracking/api/time_entries")
             .query_pairs(query)
@@ -256,7 +257,11 @@ mod tests {
     fn it_can_fetch_current_entry() {
         let (mut server, client) = setup();
         let _m = server
-            .with_fixture("GET", "/time_tracking/api/time_entries?endTime=", "time_entries")
+            .with_fixture(
+                "GET",
+                "/time_tracking/api/time_entries?endTime=&role=some-role-id",
+                "time_entries",
+            )
             .create();
 
         let entry = client.current_time_entry().unwrap().unwrap();
