@@ -45,32 +45,10 @@ impl From<url::ParseError> for Error {
 impl From<ureq::Error> for Error {
     fn from(value: ureq::Error) -> Self {
         let desc = format!("{value}");
-        match value.into_response() {
-            Some(res) => match res.header("Content-Type") {
-                Some(val) => {
-                    if val.contains("application/json") {
-                        let status = res.status();
-                        let data = res.into_json::<serde_json::Value>().unwrap();
-                        match &data {
-                            serde_json::Value::Array(list) if list.first().unwrap().is_string() => Error::ApiError {
-                                status,
-                                description: list.first().map(|v| v.as_str().unwrap().to_owned()),
-                                json: Some(data),
-                            },
-                            serde_json::Value::Object(obj) if obj.contains_key("detail") => Error::ApiError {
-                                status,
-                                description: obj["detail"].as_str().map(std::borrow::ToOwned::to_owned),
-                                json: Some(data),
-                            },
-                            _ => Error::ApiError { status, description: None, json: Some(data) },
-                        }
-                    } else {
-                        Error::UnhandledStatus(res.status())
-                    }
-                }
-                None => Error::UnhandledStatus(res.status()),
-            },
-            None => Error::Generic(desc),
+        match value {
+            // ureq::Error::StatusCode(status) => Error::ApiError { status, description: Some(desc), json: None},
+            ureq::Error::StatusCode(status) => Error::UnhandledStatus(status),
+            _ => Error::Generic(desc),
         }
     }
 }
