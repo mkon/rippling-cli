@@ -1,4 +1,4 @@
-use std::time::Duration;
+use ureq::typestate::{WithBody, WithoutBody};
 
 use crate::default_root;
 
@@ -48,36 +48,33 @@ impl Client {
 /// Methods for internal use
 impl Client {
     fn agent(&self) -> ureq::Agent {
-        ureq::AgentBuilder::new()
-            .timeout_read(Duration::from_secs(5))
-            .timeout_write(Duration::from_secs(5))
-            .build()
+        ureq::agent()
     }
 
-    pub(super) fn get(&self, path: &str) -> ureq::Request {
+    pub(super) fn get(&self, path: &str) -> ureq::RequestBuilder<WithoutBody> {
         let mut request = self
             .agent()
             .get(self.root.join(path).unwrap().as_str())
-            .set("Authorization", &format!("Bearer {}", self.token));
+            .header("Authorization", &format!("Bearer {}", self.token));
         if let Some(company) = &self.company {
-            request = request.set("Company", company);
+            request = request.header("Company", company);
         }
         if let Some(role) = &self.role {
-            request = request.set("Role", role);
+            request = request.header("Role", role);
         }
         request
     }
 
-    pub(super) fn post(&self, path: &str) -> ureq::Request {
+    pub(super) fn post(&self, path: &str) -> ureq::RequestBuilder<WithBody> {
         let mut request = self
             .agent()
             .post(self.root.join(path).unwrap().as_str())
-            .set("Authorization", &format!("Bearer {}", self.token));
+            .header("Authorization", &format!("Bearer {}", self.token));
         if let Some(company) = &self.company {
-            request = request.set("Company", company);
+            request = request.header("Company", company);
         }
         if let Some(role) = &self.role {
-            request = request.set("Role", role);
+            request = request.header("Role", role);
         }
         request
     }
