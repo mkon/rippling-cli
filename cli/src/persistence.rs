@@ -38,7 +38,7 @@ impl State {
 
 impl From<&State> for rippling_api::client::Client {
     fn from(val: &State) -> Self {
-        let client = rippling_api::client::Client::new(val.token.clone().unwrap());
+        let client = rippling_api::client::Client::new(val.token.clone().expect("No api token configured"));
         if let Some(company) = val.company_id.clone() {
             if let Some(role) = val.role_id.clone() {
                 return client.with_company_and_role(company, role);
