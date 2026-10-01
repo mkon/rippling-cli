@@ -18,7 +18,7 @@ pub fn status() -> Result<()> {
             }
 
             // Print regular hours and breaks
-            let regular_hours_formatted = format_hours(entry.regular_hours);
+            let regular_hours_formatted = format_hours(entry.regular_hours.expect("Missing regularHours in response"));
             let unpaid_break_hours_formatted = format_hours(entry.unpaid_break_hours);
             msg.push_str(&format!(
                 " (Regular hours: {regular_hours_formatted}, Breaks: {unpaid_break_hours_formatted})"
@@ -40,7 +40,8 @@ pub fn status_compact() -> Result<()> {
             if let Some(br) = entry.current_break() {
                 println!("Break since {}", local_time_format(br.start_time));
             } else {
-                let regular_hours_formatted = format_hours(entry.regular_hours);
+                let regular_hours_formatted =
+                    format_hours(entry.regular_hours.expect("Missing regularHours in response"));
                 println!("Working for {regular_hours_formatted}")
             }
         }

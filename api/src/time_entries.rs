@@ -1,5 +1,5 @@
 use json_value_merge::Merge;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::json;
 use time::format_description::FormatItem;
 use time::macros::format_description;
@@ -141,8 +141,8 @@ pub struct TimeEntry {
     #[serde(rename = "endTime", with = "rfc3339::option")]
     pub end_time: Option<OffsetDateTime>,
     pub breaks: Vec<TimeEntryBreak>,
-    #[serde(rename = "regularHours", deserialize_with = "f32_from_str")]
-    pub regular_hours: f32,
+    #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str")]
+    pub regular_hours: Option<f32>,
     #[serde(rename = "unpaidBreakHours", deserialize_with = "f32_from_str")]
     pub unpaid_break_hours: f32,
     // pub timezone: String,
@@ -182,6 +182,12 @@ impl NewTimeEntry {
     }
 }
 
+impl Default for NewTimeEntry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TimeEntry {
     pub fn current_break(&self) -> Option<&TimeEntryBreak> {
         self.breaks.iter().find(|b| b.end_time.is_none())
@@ -198,8 +204,16 @@ fn f32_from_str<'de, D>(deserializer: D) -> std::result::Result<f32, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer).unwrap();
-    Ok(s.parse::<f32>().unwrap())
+    let s = String::deserialize(deserializer)?;
+    s.parse::<f32>().map_err(de::Error::custom)
+}
+
+fn opt_f32_from_str<'de, D>(deserializer: D) -> std::result::Result<Option<f32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(deserializer)?;
+    s.map(|s| s.parse::<f32>().map_err(de::Error::custom)).transpose()
 }
 
 #[cfg(test)]
@@ -276,7 +290,7 @@ mod tests {
             entry.start_time.to_offset(UtcOffset::UTC).format(&Rfc3339).unwrap(),
             "2023-01-19T08:22:25Z"
         );
-        assert_eq!(entry.regular_hours, 0.92583334);
+        assert_eq!(entry.regular_hours, Some(0.92583334));
         assert!(entry.current_break().is_none());
     }
 

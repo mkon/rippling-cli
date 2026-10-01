@@ -1,4 +1,4 @@
-use clap::{arg, Parser};
+use clap::Parser;
 use inquire::Confirm;
 use regex::Regex;
 use std::{result::Result as StdResult, thread};
@@ -103,8 +103,8 @@ fn naive_to_fixed_datetime(date: Date, time: Time) -> OffsetDateTime {
 }
 
 /// Sets the regulatory required minimum break per shift according to German labor law
-fn setup_minimum_breaks(input: &Vec<Time>) -> Vec<Time> {
-    assert!(input.len() % 2 == 0);
+fn setup_minimum_breaks(input: &[Time]) -> Vec<Time> {
+    assert!(input.len().is_multiple_of(2));
     let mut out: Vec<Time> = Vec::new();
     for pair in input.chunks_exact(2) {
         let duration = pair[1] - pair[0];

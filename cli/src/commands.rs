@@ -58,7 +58,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    ApiError(rippling_api::Error),
+    Api(rippling_api::Error),
     AlreadyOnBreak,
     NotClockedIn,
     NotOnBreak,
@@ -70,7 +70,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ApiError(e) => write!(f, "{e}"),
+            Self::Api(e) => write!(f, "{e}"),
             Self::AlreadyOnBreak => write!(f, "Already on a break"),
             Self::NotClockedIn => write!(f, "Not clocked in"),
             Self::NotOnBreak => write!(f, "Not on a break"),
@@ -88,7 +88,7 @@ impl std::fmt::Display for Error {
 
 impl From<rippling_api::Error> for Error {
     fn from(value: rippling_api::Error) -> Self {
-        Error::ApiError(value)
+        Error::Api(value)
     }
 }
 

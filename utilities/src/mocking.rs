@@ -48,3 +48,9 @@ impl FakeRippling {
         .create()
     }
 }
+
+impl Default for FakeRippling {
+    fn default() -> Self {
+        Self::new()
+    }
+}

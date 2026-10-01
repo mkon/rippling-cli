@@ -54,11 +54,6 @@ impl From<ureq::Error> for Error {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use utilities::mocking;
-
-    use super::*;
-
     // #[test]
     // fn it_can_parse_array_errors() {
     //     let mut server = mocking::FakeRippling::new();
