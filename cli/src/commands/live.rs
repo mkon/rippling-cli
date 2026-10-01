@@ -19,7 +19,8 @@ pub fn status() -> Result<()> {
 
             // Print regular hours and breaks
             let regular_hours_formatted = format_hours(entry.regular_hours.expect("Missing regularHours in response"));
-            let unpaid_break_hours_formatted = format_hours(entry.unpaid_break_hours);
+            let unpaid_break_hours_formatted =
+                format_hours(entry.unpaid_break_hours.expect("Missing unpaidBreakHours in response"));
             msg.push_str(&format!(
                 " (Regular hours: {regular_hours_formatted}, Breaks: {unpaid_break_hours_formatted})"
             ));

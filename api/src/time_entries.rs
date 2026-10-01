@@ -143,8 +143,8 @@ pub struct TimeEntry {
     pub breaks: Vec<TimeEntryBreak>,
     #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str")]
     pub regular_hours: Option<f32>,
-    #[serde(rename = "unpaidBreakHours", deserialize_with = "f32_from_str")]
-    pub unpaid_break_hours: f32,
+    #[serde(rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str")]
+    pub unpaid_break_hours: Option<f32>,
     // pub timezone: String,
 }
 
@@ -198,14 +198,6 @@ impl TimeEntryBreak {
     pub fn duration(&self) -> Option<Duration> {
         self.end_time.map(|end| end - self.start_time)
     }
-}
-
-fn f32_from_str<'de, D>(deserializer: D) -> std::result::Result<f32, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    s.parse::<f32>().map_err(de::Error::custom)
 }
 
 fn opt_f32_from_str<'de, D>(deserializer: D) -> std::result::Result<Option<f32>, D::Error>
