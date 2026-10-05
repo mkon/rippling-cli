@@ -143,7 +143,7 @@ pub struct TimeEntry {
     pub breaks: Vec<TimeEntryBreak>,
     #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str")]
     pub regular_hours: Option<f32>,
-    #[serde(rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str")]
+    #[serde(default, rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str")]
     pub unpaid_break_hours: Option<f32>,
     // pub timezone: String,
 }
@@ -236,7 +236,7 @@ mod tests {
         );
 
         let m = server
-            .with_fixture("POST", "/time_tracking/api/time_entries", "time_entry")
+            .with_fixture("POST", "/time_tracking/api/time_entries", "clocked_in")
             .with_status(201)
             .match_body(mocking::Matcher::Json(json!(
                 {
@@ -262,6 +262,9 @@ mod tests {
 
         let entry = client.create_time_entry(&new_entry);
         assert!(entry.is_ok());
+        let inner = entry.unwrap();
+        assert!(inner.regular_hours.is_none());
+        assert!(inner.unpaid_break_hours.is_none());
         m.assert();
     }
 
