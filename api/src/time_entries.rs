@@ -193,8 +193,18 @@ impl TimeEntry {
         self.breaks.iter().find(|b| b.end_time.is_none())
     }
 
-    pub fn work_duration(&self) -> Option<Duration> {
-        self.regular_hours.map(|hours| Duration::seconds_f32(hours * 3_600f32))
+    /// Returns the worked duration of this [`TimeEntry`], excluding all breaks.
+    /// Open entries and breaks are calculated up to the current time.
+    pub fn work_duration(&self) -> Duration {
+        let now = OffsetDateTime::now_utc();
+        let total = self.end_time.unwrap_or(now) - self.start_time;
+        total - self.break_duration()
+    }
+
+    /// Returns the total duration of all breaks in this [`TimeEntry`].
+    /// Open breaks are calculated up to the current time.
+    pub fn break_duration(&self) -> Duration {
+        self.breaks.iter().filter_map(TimeEntryBreak::duration).sum()
     }
 }
 
@@ -365,5 +375,32 @@ mod tests {
 
         client.end_break("id", "break-type-id").unwrap();
         m.assert();
+    }
+
+    #[test]
+    fn it_calculates_work_duration_without_breaks() {
+        let brk = |start, end| TimeEntryBreak {
+            break_type_id: "break-type-id".into(),
+            description: "Break".into(),
+            start_time: start,
+            end_time: Some(end),
+        };
+        let entry = TimeEntry {
+            id: "id".into(),
+            active_policy: TimeEntryActivePolicy {
+                time_policy_id: "time-policy-id".into(),
+                break_policy_id: "break-policy-id".into(),
+            },
+            start_time: datetime!(2023-01-20 08:00 +1),
+            end_time: Some(datetime!(2023-01-20 17:00 +1)),
+            breaks: vec![
+                brk(datetime!(2023-01-20 10:00 +1), datetime!(2023-01-20 10:15 +1)),
+                brk(datetime!(2023-01-20 12:00 +1), datetime!(2023-01-20 12:45 +1)),
+            ],
+            regular_hours: None,
+            unpaid_break_hours: None,
+        };
+
+        assert_eq!(entry.work_duration(), Duration::minutes(8 * 60));
     }
 }

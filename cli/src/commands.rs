@@ -160,10 +160,9 @@ pub(crate) fn start_spinner() -> ProgressBar {
     s
 }
 
-fn format_hours(hours: f32) -> String {
-    let h = hours.floor();
-    let m = (hours.fract() * 60.0).floor();
-    format!("{h:1}:{m:02}")
+fn format_duration(duration: time::Duration) -> String {
+    let minutes = duration.whole_minutes();
+    format!("{}:{:02}", minutes / 60, minutes % 60)
 }
 
 fn local_time_format(datetime: OffsetDateTime) -> String {

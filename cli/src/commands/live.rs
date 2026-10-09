@@ -1,7 +1,7 @@
 use crate::persistence;
 use crate::spinner_wrap;
 
-use super::{format_hours, local_time_format};
+use super::{format_duration, local_time_format};
 use super::{Error, Result};
 use rippling_api::Client;
 
@@ -17,13 +17,10 @@ pub fn status() -> Result<()> {
                 msg.push_str(&format!(", started break at {}", local_time_format(br.start_time)));
             }
 
-            // Print regular hours and breaks
-            let regular_hours_formatted = format_hours(entry.regular_hours.expect("Missing regularHours in response"));
-            let unpaid_break_hours_formatted =
-                format_hours(entry.unpaid_break_hours.expect("Missing unpaidBreakHours in response"));
-            msg.push_str(&format!(
-                " (Regular hours: {regular_hours_formatted}, Breaks: {unpaid_break_hours_formatted})"
-            ));
+            // Print worked hours and breaks
+            let worked_formatted = format_duration(entry.work_duration());
+            let breaks_formatted = format_duration(entry.break_duration());
+            msg.push_str(&format!(" (Worked: {worked_formatted}, Breaks: {breaks_formatted})"));
 
             println!("{msg}");
         }
@@ -41,9 +38,8 @@ pub fn status_compact() -> Result<()> {
             if let Some(br) = entry.current_break() {
                 println!("Break since {}", local_time_format(br.start_time));
             } else {
-                let regular_hours_formatted =
-                    format_hours(entry.regular_hours.expect("Missing regularHours in response"));
-                println!("Working for {regular_hours_formatted}")
+                let worked_formatted = format_duration(entry.work_duration());
+                println!("Working for {worked_formatted}")
             }
         }
         None => println!("Clocked out"),
@@ -111,7 +107,7 @@ pub fn end_break() -> Result<()> {
                     println!(
                         "Stopped break at {}, after {} hours!",
                         local_time_format(brk.end_time.unwrap()),
-                        format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
+                        format_duration(brk.duration().unwrap())
                     );
                     Ok(())
                 }

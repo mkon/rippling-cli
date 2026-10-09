@@ -45,7 +45,7 @@ pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
                     notify("End break soon!")
                 }
             } else {
-                let elapsed = entry.work_duration().unwrap();
+                let elapsed = entry.work_duration();
                 if elapsed >= max_work_duration {
                     println!("Working too long!");
                     if cmd.enforce {
