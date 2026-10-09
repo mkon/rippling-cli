@@ -69,6 +69,7 @@ pub enum Error {
     NoManualBreakType,
     UnexpectedResponse,
     NoWorkingDay(CheckOutcome),
+    WarnTooLarge,
 }
 
 impl std::fmt::Display for Error {
@@ -80,6 +81,7 @@ impl std::fmt::Display for Error {
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
             Self::UnexpectedResponse => write!(f, "Unexpected response received"),
+            Self::WarnTooLarge => write!(f, "--warn must be smaller than --max-break and --max-work"),
             Self::NoWorkingDay(r) => match r {
                 CheckOutcome::Leave => write!(f, "You are on PTO"),
                 CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),

@@ -22,6 +22,9 @@ pub struct Command {
 }
 
 pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
+    if cmd.warn >= cmd.max_break || cmd.warn >= cmd.max_work {
+        return Err(super::Error::WarnTooLarge);
+    }
     let max_break_duration = SignedDuration::minutes(cmd.max_break.into());
     let max_work_duration = SignedDuration::minutes(cmd.max_work.into());
     let warn = SignedDuration::minutes(cmd.warn.into());
@@ -35,7 +38,8 @@ pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
                 if elapsed >= max_break_duration {
                     println!("On break too long!");
                     if cmd.enforce {
-                        client.end_break(&entry.id, &br.break_type_id).unwrap();
+                        client.end_break(&entry.id, &br.break_type_id)?;
+                        notify("Break ended automatically!");
                     }
                 } else if elapsed >= max_break_duration - warn {
                     notify("End break soon!")
@@ -45,7 +49,8 @@ pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
                 if elapsed >= max_work_duration {
                     println!("Working too long!");
                     if cmd.enforce {
-                        client.end_clock(&entry.id).unwrap();
+                        client.end_clock(&entry.id)?;
+                        notify("Clocked out automatically!");
                     }
                 } else if elapsed >= max_work_duration - warn {
                     notify("clock out soon!")
