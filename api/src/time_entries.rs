@@ -192,11 +192,21 @@ impl TimeEntry {
     pub fn current_break(&self) -> Option<&TimeEntryBreak> {
         self.breaks.iter().find(|b| b.end_time.is_none())
     }
+
+    pub fn work_duration(&self) -> Option<Duration> {
+        self.regular_hours.map(|hours| Duration::seconds_f32(hours * 3_600f32))
+    }
 }
 
 impl TimeEntryBreak {
+    /// Returns the duration of this [`TimeEntryBreak`].
+    /// When there is no end, calculates duration based on current time.
     pub fn duration(&self) -> Option<Duration> {
-        self.end_time.map(|end| end - self.start_time)
+        if let Some(end) = self.end_time {
+            (end - self.start_time).into()
+        } else {
+            Some(OffsetDateTime::now_utc() - self.start_time)
+        }
     }
 }
 

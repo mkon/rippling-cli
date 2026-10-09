@@ -1,3 +1,4 @@
+pub mod guard;
 pub mod live;
 pub mod manual_entry;
 pub mod pto;
@@ -21,6 +22,9 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigureCommands,
     },
+
+    /// Guard against amnesia
+    Guard(guard::Command),
 
     /// Clock-in Status
     Status {
@@ -109,6 +113,7 @@ pub fn execute(command: &Commands) -> Result<()> {
             ConfigureCommands::AccessToken { value } => set_access_token(value),
         },
         Commands::Manual(cmd) => manual_entry::execute(cmd),
+        Commands::Guard(cmd) => guard::execute(cmd),
     }
 }
 
