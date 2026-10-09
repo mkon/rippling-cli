@@ -5,7 +5,7 @@ use time::SignedDuration;
 
 use crate::{cache, persistence};
 
-/// Manually add entry for a day
+/// Warn before break and work limits are reached, and optionally enforce them
 #[derive(Debug, Parser)]
 pub struct Command {
     #[arg(long)]
