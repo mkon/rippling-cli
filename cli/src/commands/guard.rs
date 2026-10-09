@@ -1,9 +1,9 @@
 use clap::Parser;
-use rippling_api::Client;
+use rippling_api::{time_entries::TimeEntry, Client};
 use std::result::Result as StdResult;
 use time::SignedDuration;
 
-use crate::{persistence, spinner_wrap};
+use crate::{cache, persistence};
 
 /// Manually add entry for a day
 #[derive(Debug, Parser)]
@@ -19,45 +19,80 @@ pub struct Command {
 
     #[arg(long)]
     pub enforce: bool,
+
+    /// Max age of the cached time entry in seconds. Always refetched before warning or enforcing.
+    #[arg(long, default_value_t = 300)]
+    pub ttl: u32,
+}
+
+#[derive(Debug, PartialEq)]
+enum Verdict {
+    Ok,
+    BreakEndingSoon,
+    BreakTooLong,
+    WorkEndingSoon,
+    WorkTooLong,
+}
+
+impl Command {
+    fn check(&self, entry: &TimeEntry) -> Verdict {
+        let (elapsed, max, soon, over) = match entry.current_break() {
+            Some(br) => (
+                br.duration().unwrap(),
+                self.max_break,
+                Verdict::BreakEndingSoon,
+                Verdict::BreakTooLong,
+            ),
+            None => (
+                entry.work_duration(),
+                self.max_work,
+                Verdict::WorkEndingSoon,
+                Verdict::WorkTooLong,
+            ),
+        };
+        let max = SignedDuration::minutes(max.into());
+        if elapsed >= max {
+            over
+        } else if elapsed >= max - SignedDuration::minutes(self.warn.into()) {
+            soon
+        } else {
+            Verdict::Ok
+        }
+    }
 }
 
 pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
     if cmd.warn >= cmd.max_break || cmd.warn >= cmd.max_work {
         return Err(super::Error::WarnTooLarge);
     }
-    let max_break_duration = SignedDuration::minutes(cmd.max_break.into());
-    let max_work_duration = SignedDuration::minutes(cmd.max_work.into());
-    let warn = SignedDuration::minutes(cmd.warn.into());
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
-    match current {
-        Some(entry) => {
-            // If on break, print the break start time
-            if let Some(br) = entry.current_break() {
-                let elapsed = br.duration().unwrap();
-                if elapsed >= max_break_duration {
-                    println!("On break too long!");
-                    if cmd.enforce {
-                        client.end_break(&entry.id, &br.break_type_id)?;
-                        notify("Break ended automatically!");
-                    }
-                } else if elapsed >= max_break_duration - warn {
-                    notify("End break soon!")
-                }
-            } else {
-                let elapsed = entry.work_duration();
-                if elapsed >= max_work_duration {
-                    println!("Working too long!");
-                    if cmd.enforce {
-                        client.end_clock(&entry.id)?;
-                        notify("Clocked out automatically!");
-                    }
-                } else if elapsed >= max_work_duration - warn {
-                    notify("clock out soon!")
-                }
+    let mut current = cache::current_time_entry(&client, Some(SignedDuration::seconds(cmd.ttl.into())))?;
+    // Never warn or enforce based on stale data
+    if current.as_ref().is_some_and(|entry| cmd.check(entry) != Verdict::Ok) {
+        current = cache::current_time_entry(&client, None)?;
+    }
+    let Some(entry) = current else { return Ok(()) };
+    match cmd.check(&entry) {
+        Verdict::Ok => {}
+        Verdict::BreakEndingSoon => notify("End break soon!"),
+        Verdict::BreakTooLong => {
+            println!("On break too long!");
+            if cmd.enforce {
+                let br = entry.current_break().unwrap();
+                let updated = client.end_break(&entry.id, &br.break_type_id)?;
+                cache::store(Some(&updated));
+                notify("Break ended automatically!");
             }
         }
-        None => println!("Not clocked in!"),
+        Verdict::WorkEndingSoon => notify("clock out soon!"),
+        Verdict::WorkTooLong => {
+            println!("Working too long!");
+            if cmd.enforce {
+                client.end_clock(&entry.id)?;
+                cache::store(None);
+                notify("Clocked out automatically!");
+            }
+        }
     }
     Ok(())
 }

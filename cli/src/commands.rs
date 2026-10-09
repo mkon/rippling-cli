@@ -31,6 +31,14 @@ pub enum Commands {
         /// Compact format
         #[arg(short, long, default_value_t = false)]
         compact: bool,
+
+        /// Use the cached time entry if it is younger than --ttl
+        #[arg(long, default_value_t = false)]
+        cached: bool,
+
+        /// Max age of the cached time entry in seconds
+        #[arg(long, default_value_t = 60, requires = "cached")]
+        ttl: u32,
     },
 
     /// Clock In
@@ -102,11 +110,12 @@ pub fn execute(command: &Commands) -> Result<()> {
     match command {
         Commands::ClockIn => live::clock_in(),
         Commands::ClockOut => live::clock_out(),
-        Commands::Status { compact } => {
+        Commands::Status { compact, cached, ttl } => {
+            let ttl = cached.then(|| time::Duration::seconds((*ttl).into()));
             if *compact {
-                live::status_compact()
+                live::status_compact(ttl)
             } else {
-                live::status()
+                live::status(ttl)
             }
         }
         Commands::StartBreak => live::start_break(),

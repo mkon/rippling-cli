@@ -1,13 +1,14 @@
-use crate::persistence;
+use crate::{cache, persistence};
 use crate::spinner_wrap;
 
 use super::{format_duration, local_time_format};
 use super::{Error, Result};
 use rippling_api::Client;
+use time::Duration;
 
-pub fn status() -> Result<()> {
+pub fn status(ttl: Option<Duration>) -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    let current = cache::current_time_entry(&client, ttl)?;
     match current {
         Some(entry) => {
             let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
@@ -29,9 +30,9 @@ pub fn status() -> Result<()> {
     Ok(())
 }
 
-pub fn status_compact() -> Result<()> {
+pub fn status_compact(ttl: Option<Duration>) -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    let current = cache::current_time_entry(&client, ttl)?;
     match current {
         Some(entry) => {
             // If on break, print the break start time
@@ -50,6 +51,7 @@ pub fn status_compact() -> Result<()> {
 pub fn clock_in() -> Result<()> {
     let client: Client = persistence::state().into();
     let entry = spinner_wrap!(client.start_clock())?;
+    cache::store(Some(&entry));
     println!("Clocked in since {}!", local_time_format(entry.start_time));
     Ok(())
 }
@@ -61,6 +63,7 @@ pub fn clock_out() -> Result<()> {
         match current {
             Some(entry) => {
                 client.end_clock(&entry.id)?;
+                cache::store(None);
                 println!("Clocked out!");
                 Ok(())
             }
@@ -83,6 +86,7 @@ pub fn start_break() -> Result<()> {
                     let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
                     let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
                     let entry = client.start_break(&entry.id, &break_type.id)?;
+                    cache::store(Some(&entry));
                     let brk = entry.current_break().unwrap().to_owned();
                     println!("Started break at {}!", local_time_format(brk.start_time));
                     Ok(())
@@ -103,6 +107,7 @@ pub fn end_break() -> Result<()> {
                 None => Err(Error::NotOnBreak),
                 Some(br) => {
                     let res = client.end_break(&entry.id, &br.break_type_id)?;
+                    cache::store(Some(&res));
                     let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
                     println!(
                         "Stopped break at {}, after {} hours!",

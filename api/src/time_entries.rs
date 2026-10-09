@@ -131,7 +131,7 @@ pub struct NewTimeEntryShift {
     pub end_time: OffsetDateTime,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeEntry {
     pub id: String,
     #[serde(rename = "activePolicy")]
@@ -141,14 +141,14 @@ pub struct TimeEntry {
     #[serde(rename = "endTime", with = "rfc3339::option")]
     pub end_time: Option<OffsetDateTime>,
     pub breaks: Vec<TimeEntryBreak>,
-    #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str")]
+    #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str", skip_serializing)]
     pub regular_hours: Option<f32>,
-    #[serde(default, rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str")]
+    #[serde(default, rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str", skip_serializing)]
     pub unpaid_break_hours: Option<f32>,
     // pub timezone: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeEntryActivePolicy {
     #[serde(rename = "timePolicy")]
     pub time_policy_id: String,
@@ -156,7 +156,7 @@ pub struct TimeEntryActivePolicy {
     pub break_policy_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeEntryBreak {
     #[serde(rename = "companyBreakType")]
     pub break_type_id: String,
