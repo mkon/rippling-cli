@@ -3,10 +3,7 @@ use rippling_api::Client;
 use std::result::Result as StdResult;
 use time::SignedDuration;
 
-use crate::{
-    commands::{format_hours, local_time_format},
-    persistence, spinner_wrap,
-};
+use crate::{persistence, spinner_wrap};
 
 /// Manually add entry for a day
 #[derive(Debug, Parser)]
@@ -35,18 +32,25 @@ pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
                 if elapsed >= max_break_duration {
                     println!("On break too long!")
                 } else if elapsed >= max_break_duration - warn {
-                    println!("End break soon!")
+                    notify("End break soon!")
                 }
             } else {
                 let elapsed = entry.work_duration().unwrap();
                 if elapsed >= max_work_duration {
                     println!("Working too long!")
-                } else if elapsed >= max_break_duration - warn {
-                    println!("clock out soon!")
+                } else if elapsed >= max_work_duration - warn {
+                    notify("clock out soon!")
                 }
             }
         }
         None => println!("Not clocked in!"),
     }
     Ok(())
+}
+
+fn notify(msg: &str) {
+    let script = format!("display notification {msg:?} with title \"Rippling-Cli\"");
+    let _ = std::process::Command::new("/usr/bin/osascript")
+        .args(["-e", &script])
+        .status();
 }
