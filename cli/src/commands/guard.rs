@@ -16,6 +16,9 @@ pub struct Command {
 
     #[arg(long)]
     pub warn: u16,
+
+    #[arg(long)]
+    pub enforce: bool,
 }
 
 pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
@@ -30,14 +33,20 @@ pub(crate) fn execute(cmd: &Command) -> StdResult<(), super::Error> {
             if let Some(br) = entry.current_break() {
                 let elapsed = br.duration().unwrap();
                 if elapsed >= max_break_duration {
-                    println!("On break too long!")
+                    println!("On break too long!");
+                    if cmd.enforce {
+                        client.end_break(&entry.id, &br.break_type_id).unwrap();
+                    }
                 } else if elapsed >= max_break_duration - warn {
                     notify("End break soon!")
                 }
             } else {
                 let elapsed = entry.work_duration().unwrap();
                 if elapsed >= max_work_duration {
-                    println!("Working too long!")
+                    println!("Working too long!");
+                    if cmd.enforce {
+                        client.end_clock(&entry.id).unwrap();
+                    }
                 } else if elapsed >= max_work_duration - warn {
                     notify("clock out soon!")
                 }
