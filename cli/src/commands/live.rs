@@ -1,13 +1,14 @@
-use crate::persistence;
 use crate::spinner_wrap;
+use crate::{cache, persistence};
 
-use super::{format_hours, local_time_format};
+use super::{format_duration, local_time_format};
 use super::{Error, Result};
 use rippling_api::Client;
+use time::Duration;
 
-pub fn status() -> Result<()> {
+pub fn status(ttl: Option<Duration>) -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    let current = cache::current_time_entry(&client, ttl)?;
     match current {
         Some(entry) => {
             let mut msg = format!("Clocked in since {}", local_time_format(entry.start_time));
@@ -17,13 +18,10 @@ pub fn status() -> Result<()> {
                 msg.push_str(&format!(", started break at {}", local_time_format(br.start_time)));
             }
 
-            // Print regular hours and breaks
-            let regular_hours_formatted = format_hours(entry.regular_hours.expect("Missing regularHours in response"));
-            let unpaid_break_hours_formatted =
-                format_hours(entry.unpaid_break_hours.expect("Missing unpaidBreakHours in response"));
-            msg.push_str(&format!(
-                " (Regular hours: {regular_hours_formatted}, Breaks: {unpaid_break_hours_formatted})"
-            ));
+            // Print worked hours and breaks
+            let worked_formatted = format_duration(entry.work_duration());
+            let breaks_formatted = format_duration(entry.break_duration());
+            msg.push_str(&format!(" (Worked: {worked_formatted}, Breaks: {breaks_formatted})"));
 
             println!("{msg}");
         }
@@ -32,18 +30,17 @@ pub fn status() -> Result<()> {
     Ok(())
 }
 
-pub fn status_compact() -> Result<()> {
+pub fn status_compact(ttl: Option<Duration>) -> Result<()> {
     let client: Client = persistence::state().into();
-    let current = spinner_wrap!(client.current_time_entry())?;
+    let current = cache::current_time_entry(&client, ttl)?;
     match current {
         Some(entry) => {
             // If on break, print the break start time
             if let Some(br) = entry.current_break() {
                 println!("Break since {}", local_time_format(br.start_time));
             } else {
-                let regular_hours_formatted =
-                    format_hours(entry.regular_hours.expect("Missing regularHours in response"));
-                println!("Working for {regular_hours_formatted}")
+                let worked_formatted = format_duration(entry.work_duration());
+                println!("Working for {worked_formatted}")
             }
         }
         None => println!("Clocked out"),
@@ -54,6 +51,7 @@ pub fn status_compact() -> Result<()> {
 pub fn clock_in() -> Result<()> {
     let client: Client = persistence::state().into();
     let entry = spinner_wrap!(client.start_clock())?;
+    cache::store(Some(&entry));
     println!("Clocked in since {}!", local_time_format(entry.start_time));
     Ok(())
 }
@@ -65,6 +63,7 @@ pub fn clock_out() -> Result<()> {
         match current {
             Some(entry) => {
                 client.end_clock(&entry.id)?;
+                cache::store(None);
                 println!("Clocked out!");
                 Ok(())
             }
@@ -87,6 +86,7 @@ pub fn start_break() -> Result<()> {
                     let break_policy = client.break_policy(&entry.active_policy.break_policy_id)?;
                     let break_type = break_policy.manual_break_type().ok_or(Error::NoManualBreakType)?;
                     let entry = client.start_break(&entry.id, &break_type.id)?;
+                    cache::store(Some(&entry));
                     let brk = entry.current_break().unwrap().to_owned();
                     println!("Started break at {}!", local_time_format(brk.start_time));
                     Ok(())
@@ -107,11 +107,12 @@ pub fn end_break() -> Result<()> {
                 None => Err(Error::NotOnBreak),
                 Some(br) => {
                     let res = client.end_break(&entry.id, &br.break_type_id)?;
+                    cache::store(Some(&res));
                     let brk = res.breaks.into_iter().last().ok_or(Error::UnexpectedResponse)?;
                     println!(
                         "Stopped break at {}, after {} hours!",
                         local_time_format(brk.end_time.unwrap()),
-                        format_hours(brk.duration().unwrap().whole_minutes() as f32 / 60.0)
+                        format_duration(brk.duration().unwrap())
                     );
                     Ok(())
                 }

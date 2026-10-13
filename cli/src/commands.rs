@@ -1,3 +1,4 @@
+pub mod guard;
 pub mod live;
 pub mod manual_entry;
 pub mod pto;
@@ -22,11 +23,22 @@ pub enum Commands {
         command: ConfigureCommands,
     },
 
+    /// Warn about and enforce break and work time limits
+    Guard(guard::Command),
+
     /// Clock-in Status
     Status {
         /// Compact format
         #[arg(short, long, default_value_t = false)]
         compact: bool,
+
+        /// Use the cached time entry if it is younger than --ttl
+        #[arg(long, default_value_t = false)]
+        cached: bool,
+
+        /// Max age of the cached time entry in seconds
+        #[arg(long, default_value_t = 60, requires = "cached")]
+        ttl: u32,
     },
 
     /// Clock In
@@ -65,6 +77,7 @@ pub enum Error {
     NoManualBreakType,
     UnexpectedResponse,
     NoWorkingDay(CheckOutcome),
+    WarnTooLarge,
 }
 
 impl std::fmt::Display for Error {
@@ -76,6 +89,7 @@ impl std::fmt::Display for Error {
             Self::NotOnBreak => write!(f, "Not on a break"),
             Self::NoManualBreakType => write!(f, "No manual break type"),
             Self::UnexpectedResponse => write!(f, "Unexpected response received"),
+            Self::WarnTooLarge => write!(f, "--warn must be smaller than --max-break and --max-work"),
             Self::NoWorkingDay(r) => match r {
                 CheckOutcome::Leave => write!(f, "You are on PTO"),
                 CheckOutcome::Holiday(h) => write!(f, "It is a holiday ({})", h.name),
@@ -96,11 +110,12 @@ pub fn execute(command: &Commands) -> Result<()> {
     match command {
         Commands::ClockIn => live::clock_in(),
         Commands::ClockOut => live::clock_out(),
-        Commands::Status { compact } => {
+        Commands::Status { compact, cached, ttl } => {
+            let ttl = cached.then(|| time::Duration::seconds((*ttl).into()));
             if *compact {
-                live::status_compact()
+                live::status_compact(ttl)
             } else {
-                live::status()
+                live::status(ttl)
             }
         }
         Commands::StartBreak => live::start_break(),
@@ -109,6 +124,7 @@ pub fn execute(command: &Commands) -> Result<()> {
             ConfigureCommands::AccessToken { value } => set_access_token(value),
         },
         Commands::Manual(cmd) => manual_entry::execute(cmd),
+        Commands::Guard(cmd) => guard::execute(cmd),
     }
 }
 
@@ -153,10 +169,9 @@ pub(crate) fn start_spinner() -> ProgressBar {
     s
 }
 
-fn format_hours(hours: f32) -> String {
-    let h = hours.floor();
-    let m = (hours.fract() * 60.0).floor();
-    format!("{h:1}:{m:02}")
+fn format_duration(duration: time::Duration) -> String {
+    let minutes = duration.whole_minutes();
+    format!("{}:{:02}", minutes / 60, minutes % 60)
 }
 
 fn local_time_format(datetime: OffsetDateTime) -> String {

@@ -1,9 +1,11 @@
+mod cache;
 mod commands;
 pub mod persistence;
 
 use std::{
     fs::{self, File},
     io::IsTerminal,
+    process::ExitCode,
     sync::OnceLock,
 };
 
@@ -20,10 +22,16 @@ struct Cli {
     command: Commands,
 }
 
-fn main() -> commands::Result<()> {
+fn main() -> ExitCode {
     init_logging();
     let cli = Cli::parse();
-    commands::execute(&cli.command)
+    match commands::execute(&cli.command) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 fn is_interactive() -> bool {
