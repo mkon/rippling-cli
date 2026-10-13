@@ -23,7 +23,7 @@ pub enum Commands {
         command: ConfigureCommands,
     },
 
-    /// Guard against amnesia
+    /// Warn about and enforce break and work time limits
     Guard(guard::Command),
 
     /// Clock-in Status

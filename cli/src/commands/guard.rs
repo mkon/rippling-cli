@@ -8,15 +8,19 @@ use crate::{cache, persistence};
 /// Warn before break and work limits are reached, and optionally enforce them
 #[derive(Debug, Parser)]
 pub struct Command {
+    /// Maximum length of a break in minutes
     #[arg(long)]
     pub max_break: u16,
 
+    /// Maximum worked time in minutes, excluding breaks
     #[arg(long)]
     pub max_work: u16,
 
+    /// Minutes before a limit is reached to start warning
     #[arg(long)]
     pub warn: u16,
 
+    /// End the break or clock out when a limit is exceeded
     #[arg(long)]
     pub enforce: bool,
 
