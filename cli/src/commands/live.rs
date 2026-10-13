@@ -1,5 +1,5 @@
-use crate::{cache, persistence};
 use crate::spinner_wrap;
+use crate::{cache, persistence};
 
 use super::{format_duration, local_time_format};
 use super::{Error, Result};

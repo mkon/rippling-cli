@@ -141,9 +141,19 @@ pub struct TimeEntry {
     #[serde(rename = "endTime", with = "rfc3339::option")]
     pub end_time: Option<OffsetDateTime>,
     pub breaks: Vec<TimeEntryBreak>,
-    #[serde(default, rename = "regularHours", deserialize_with = "opt_f32_from_str", skip_serializing)]
+    #[serde(
+        default,
+        rename = "regularHours",
+        deserialize_with = "opt_f32_from_str",
+        skip_serializing
+    )]
     pub regular_hours: Option<f32>,
-    #[serde(default, rename = "unpaidBreakHours", deserialize_with = "opt_f32_from_str", skip_serializing)]
+    #[serde(
+        default,
+        rename = "unpaidBreakHours",
+        deserialize_with = "opt_f32_from_str",
+        skip_serializing
+    )]
     pub unpaid_break_hours: Option<f32>,
     // pub timezone: String,
 }
